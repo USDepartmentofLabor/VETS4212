@@ -1,0 +1,21 @@
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\VETS4212_Utilities.exe.config
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\VETS4212_Utilities.exe
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\VETS4212_Utilities.pdb
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\HtmlAgilityPack.dll
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\PdfSharp.dll
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\HtmlAgilityPack.pdb
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\HtmlAgilityPack.xml
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\PdfSharp.pdb
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\PdfSharp.xml
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\bin\Debug\de\PdfSharp.resources.dll
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\obj\x86\Debug\gov.dol.vets.utilities.External.resources
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\obj\x86\Debug\gov.dol.vets.utilities.Properties.Resources.resources
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.csproj.GenerateResource.Cache
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.exe
+F:\Programming\NET 2010 Projects\Projects\VETS\VIPERS Admin Tools\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.pdb
+F:\Programming\NET 2010 Projects\Projects\VETS\VETS4212_Utilities\VETS4212_Utilities\bin\Debug\VETS4212_Utilities.exe.config
+F:\Programming\NET 2010 Projects\Projects\VETS\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.exe
+F:\Programming\NET 2010 Projects\Projects\VETS\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.pdb
+F:\Programming\GitHub\VETS4212\VETS4212_Utilities\VETS4212_Utilities\bin\Debug\VETS4212_Utilities.exe.config
+F:\Programming\GitHub\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.exe
+F:\Programming\GitHub\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.pdb
