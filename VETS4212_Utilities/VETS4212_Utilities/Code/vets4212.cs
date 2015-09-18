@@ -1285,7 +1285,7 @@ namespace gov.dol.vets.utilities
         /// <param name="NAICS">Partial NAICS to filter retrieved data</param>
         /// <param name="ReportIDs">Listing of all processed report identifiers</param>
         /// <param name="file">File stream to write filtered data</param>
-        private void getReportData(System.Xml.XmlNode node, string ReportType, string CompanyName, string NAICS, ref ArrayList ReportIDs, ref System.IO.StreamWriter file)
+        private void getReportData(System.Xml.XmlNode node, string ReportType, string CompanyName, string NAICS, ref ArrayList ReportIDs, ref StreamWriter file)
         {
             /***************************************************************************
              ** Data format as follows
@@ -1994,26 +1994,26 @@ namespace gov.dol.vets.utilities
                 if (!bypassCompanyValidation)
                 {
                     // validate parent company information
-                    if (cInfo.CompanyName != columns[(int)_vets4212Fields.parentCompanyName])
+                    if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], true) != 0)
                         comments.AppendLine(string.Format("Parent company name does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyName], cInfo.CompanyName));
-                    if (cInfo.Address != columns[(int)_vets4212Fields.parentCompanyStreet])
+                    if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], true) != 0)
                         comments.AppendLine(string.Format("Parent street address does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyStreet], cInfo.Address));
-                    if (cInfo.County != columns[(int)_vets4212Fields.parentCompanyCounty])
+                    if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], true) != 0)
                         comments.AppendLine(string.Format("Parent county does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCounty], cInfo.County));
-                    if (cInfo.City != columns[(int)_vets4212Fields.parentCompanyCity])
+                    if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], true) != 0)
                         comments.AppendLine(string.Format("Parent city does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCity], cInfo.City));
-                    if (cInfo.State != columns[(int)_vets4212Fields.parentCompanyState])
+                    if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], true) != 0)
                         comments.AppendLine(string.Format("Parent state does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyState], cInfo.State));
-                    if (cInfo.Zipcode != columns[(int)_vets4212Fields.parentCompanyZipcode])
+                    if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], true) != 0)
                         comments.AppendLine(string.Format("Parent Zipcode does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyZipcode], cInfo.Zipcode));
 
                     // validate company contact information
                     string companyContact = string.Format("{0} {1}", cInfo.Firstname, cInfo.Lastname);
-                    if (companyContact != columns[(int)_vets4212Fields.companyContact])
+                    if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], true) != 0)
                         comments.AppendLine(string.Format("Parent contact does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContact], companyContact));
-                    if (cInfo.Phone != columns[(int)_vets4212Fields.companyContactTelephone])
+                    if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], true) != 0)
                         comments.AppendLine(string.Format("Parent contact phone does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContactTelephone], cInfo.Phone));
-                    if (cInfo.Email != columns[(int)_vets4212Fields.compoanyContactEmail])
+                    if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], true) != 0)
                         comments.AppendLine(string.Format("Parent contact email does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.compoanyContactEmail], cInfo.Email));
                 }
 
@@ -2175,7 +2175,14 @@ namespace gov.dol.vets.utilities
                 if (!int.TryParse(columns[(int)_vets4212Fields.NewHire_ProtectedVeterans11], out totalValue)) totalValue = 0;
                 if (!int.TryParse(columns[(int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11], out overallTotal)) overallTotal = 0;
                 if (overallTotal < totalValue)
-                    comments.AppendLine("The value for New Hire Total All Veterans and Non-Veterans must be greater than or equal to New Hire Total Protected Veterans.");
+                    comments.AppendLine(string.Format("row [{0:#,##0}]: The value for New Hire Total All Veterans and Non-Veterans must be greater than or equal to New Hire Total Protected Veterans.", row));
+
+                // make sure maximum employees is greater than minimum employees
+                int MaxValue, MinValue;
+                if (!int.TryParse(columns[(int)_vets4212Fields.Maximum], out MaxValue)) MaxValue = 0;
+                if (!int.TryParse(columns[(int)_vets4212Fields.Minimum], out MinValue)) MinValue = 0;
+                if (MaxValue < MinValue)
+                    comments.AppendLine(string.Format("row [{0:#,##0}]: The value for Maximum number of employees must be greater than Minimum number of employees", row));
 
                 // good return
                 return (true);
