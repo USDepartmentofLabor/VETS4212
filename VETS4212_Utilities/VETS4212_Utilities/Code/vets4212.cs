@@ -1514,10 +1514,10 @@ namespace gov.dol.vets.utilities
                  ******************************************************************************************************************************************************************************/
                 string inputData = null;
                 if (((pdfStateObject)state).InternalAccess)
-                    inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle={1}&FormType={2}&SubmittedBy=&SubmittedDate=&CompanyName={3}&CompanyNumber=&EIN=&DUNS=&LocationName=&LocationState=TN&PointOfContact=",
-                        nd.CreatePassword(), ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType), System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyName));
+                    inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle={1}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={3}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                        nd.CreatePassword(), ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType), System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
                 else
-                    inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&FilterCriteria.CompanyNumber={1}&FilterCriteria.FilingCycle={2}&FilterCriteria.FormType={3}",
+                    inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&FilterCriteria.CompanyNumber={1}&FilterCriteria.FilingCycle={2}&FilterCriteria.FormType=",
                         nd.CreatePassword(), ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType));
 
                  // encode data as ASCII
@@ -1600,8 +1600,8 @@ namespace gov.dol.vets.utilities
                  ** Internal: _search=false&nd=1432327903502&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle=2014&FormType=VETS100A&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber=T140375&EIN=&DUNS=&LocationName=&LocationState=TN&PointOfContact=
                  ******************************************************************************************************************************************************************************/
                 if (((pdfStateObject)state).InternalAccess)
-                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx=&sord=asc&ReportId=&FilingCycle={2}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName={3}&CompanyNumber=&EIN=&DUNS=&LocationName=&LocationState=TN&PointOfContact=",
-                        nd.CreatePassword(), numRecords, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyName));
+                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx=&sord=asc&ReportId=&FilingCycle={2}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={3}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                        nd.CreatePassword(), numRecords, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
                 else
                     inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx=&sord=asc&FilterCriteria.CompanyNumber={2}&FilterCriteria.FilingCycle={3}&FilterCriteria.FormType=",
                         nd.CreatePassword(), numRecords, ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle);
