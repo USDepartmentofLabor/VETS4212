@@ -675,6 +675,11 @@ namespace gov.dol.vets.utilities
         public event FixFlatFileCompletedEventHandler FixFlatFileCompleted;
         public event DataDotGovCompletedEventHandler DataDotGovCompleted;
 
+        // global vars
+        private bool _logEnabled = false;
+        private FileStream _log = null;
+        private TextWriter _logWriter = null;
+
         #region VETS-4212 Defined
         // define constants for 4212 data file
         private enum _vets4212RecordColumns : int {
@@ -1042,8 +1047,25 @@ namespace gov.dol.vets.utilities
                                       "NumEmps_RecentlySeparatedVets10", "NewHire_RecentlySeparatedVets10", "NewHire_TotalAllEmployees10" };
 
         #endregion
-        public vets4212()
+        public vets4212(bool logEnabled)
         {
+            // set value for logging
+            this._logEnabled = logEnabled;
+
+            // if logging is enabled then open log file
+            if (this._logEnabled)
+            {
+                // Get the application directory
+                string directory = AppDomain.CurrentDomain.BaseDirectory;
+                string filename = string.Format("vets4212_{0:yyyyMMdd}.log", DateTime.Now);
+                this._log = new FileStream(Path.Combine(directory, filename), FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+                // move to the end of the file
+                this._log.Seek(0, SeekOrigin.End);
+
+                // create the TextWriter
+                this._logWriter = new StreamWriter(_log);
+            }
         }
 
         #region Event Handlers
@@ -1302,6 +1324,7 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting report data with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting report data with message: {0}", ex.Message));
             }
         }
         /// <summary>
@@ -1327,6 +1350,7 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while locating content node with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while locating content node with message: {0}", ex.Message));
             }
         }
         /// <summary>
@@ -1352,6 +1376,7 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while locating properties node with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while locating properties node with message: {0}", ex.Message));
             }
         }
         /// <summary>
@@ -1460,6 +1485,7 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while processing properties nodes with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while processing properties nodes with message: {0}", ex.Message));
             }
         }
         /// <summary>
@@ -1469,14 +1495,22 @@ namespace gov.dol.vets.utilities
         /// <param name="value">The column name to locate in the string array</param>
         private int IndexOfField(string[] columns, string value)
         {
-            int index = 0;
-            foreach (string column in columns) 
+            try
             {
-                if (column == value)
-                    return (index);
-                index++;
+                int index = 0;
+                foreach (string column in columns)
+                {
+                    if (column == value)
+                        return (index);
+                    index++;
+                }
+                return (-1);
             }
-            return (-1);
+            catch (Exception ex)
+            {
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("An exception occured while trying to locate the index of requested field: [{0}]", ex.Message));
+                return (-1);
+            }
         }
         /// <summary>
         /// Procedure used to get all requested ReportIDs to generate report PDFs
@@ -1498,6 +1532,7 @@ namespace gov.dol.vets.utilities
 
             try
             {
+                if (this._logEnabled) this._logWriter.WriteLine("Getting report IDs using JSON");
                 // perform the search
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(((pdfStateObject)state).reportSearchAddress);
                 request.KeepAlive = true;
@@ -1545,6 +1580,7 @@ namespace gov.dol.vets.utilities
                     JSONData = reader.ReadToEnd();
 
                     OnMessage(this, new MessageEventArgs("Retrieved initial report data."));
+                    if (this._logEnabled) this._logWriter.WriteLine("Retrieved initial report data.");
 
                     // release resources
                     if (reader != null)
@@ -1674,11 +1710,13 @@ namespace gov.dol.vets.utilities
                 }
 
                 // have the data
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed getting {0:#,##0} report IDs using JSON", ReportIDs.Count));
                 return (true);
             }
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message));
 
                 // bad return
                 return (false);
@@ -1832,6 +1870,7 @@ namespace gov.dol.vets.utilities
             {
                 // unable to det reportIDs
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting PDF by report ID with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting PDF by report ID with message: {0}", ex.Message));
                 System.Diagnostics.Debug.WriteLine(string.Format("Unable to get PDF from site due to: {0}", ex.Message));
 
                 // no good
@@ -1908,6 +1947,8 @@ namespace gov.dol.vets.utilities
 
             try
             {
+                if (this._logEnabled) this._logWriter.WriteLine("Processing VETS-4212 Record");
+
                 // split the record into columns
                 string[] columns = record.Split(',');
 
@@ -1915,6 +1956,7 @@ namespace gov.dol.vets.utilities
                 if (columns.Length != _vets4212Record.Length)
                 {
                     comments.AppendLine(string.Format("Invalid number of columns for row [{0}], should be {1:#0}, have {2:#0}", row, _vets4212Record.Length, columns.Length));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Invalid number of columns for row [{0}], should be {1:#0}, have {2:#0}", row, _vets4212Record.Length, columns.Length));
                     return (false);
                 }
 
@@ -1948,6 +1990,7 @@ namespace gov.dol.vets.utilities
                         flatFileInformation.WebAddress, flatFileInformation.InternalAccess, columns[(int)_vets4212Fields.companyNumber], out cInfo, out cookie)))
                     {
                         comments.AppendLine("Processing stopped due to: Unable to get company information");
+                        if (this._logEnabled) this._logWriter.WriteLine("Processing stopped due to: Unable to get company information.");
                         return (false);
                     }
 
@@ -1993,27 +2036,29 @@ namespace gov.dol.vets.utilities
 
                 if (!bypassCompanyValidation)
                 {
+                    if (this._logEnabled) this._logWriter.WriteLine("Validating parent company information.");
                     // validate parent company information
-                    if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], true) != 0)
+                    if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], false) != 0)
                         comments.AppendLine(string.Format("Parent company name does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyName], cInfo.CompanyName));
-                    if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], true) != 0)
+                    if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], false) != 0)
                         comments.AppendLine(string.Format("Parent street address does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyStreet], cInfo.Address));
-                    if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], true) != 0)
+                    if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], false) != 0)
                         comments.AppendLine(string.Format("Parent county does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCounty], cInfo.County));
-                    if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], true) != 0)
+                    if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], false) != 0)
                         comments.AppendLine(string.Format("Parent city does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCity], cInfo.City));
-                    if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], true) != 0)
+                    if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], false) != 0)
                         comments.AppendLine(string.Format("Parent state does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyState], cInfo.State));
-                    if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], true) != 0)
+                    if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], false) != 0)
                         comments.AppendLine(string.Format("Parent Zipcode does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyZipcode], cInfo.Zipcode));
 
+                    if (this._logEnabled) this._logWriter.WriteLine("Validating company contact information");
                     // validate company contact information
                     string companyContact = string.Format("{0} {1}", cInfo.Firstname, cInfo.Lastname);
-                    if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], true) != 0)
+                    if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], false) != 0)
                         comments.AppendLine(string.Format("Parent contact does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContact], companyContact));
-                    if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], true) != 0)
+                    if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], false) != 0)
                         comments.AppendLine(string.Format("Parent contact phone does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContactTelephone], cInfo.Phone));
-                    if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], true) != 0)
+                    if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], false) != 0)
                         comments.AppendLine(string.Format("Parent contact email does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.compoanyContactEmail], cInfo.Email));
                 }
 
@@ -2030,6 +2075,7 @@ namespace gov.dol.vets.utilities
                         {
                             // add comment for this row and column
                             comments.AppendLine(string.Format("Row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                            if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
                         }
                     }
                 }
@@ -2039,54 +2085,90 @@ namespace gov.dol.vets.utilities
                 {
                     // should not have any hiring location information
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationName]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Name is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Name is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
 
                     // hiring location street
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationStreet]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Street is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Street is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
 
                     // hiring location city
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationCity]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location City is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location City is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
 
                     // hiring location county
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationCounty]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location County is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location County is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
 
                     // hiring location state
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationState]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location State is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location State is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
 
                     // hiring location zipcode
                     if (!string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationZipcode]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Zipcode is not allowed for form type Headquarters or Single Establishment.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Zipcode is not allowed for form type Headquarters or Single Establishment.", row));
+                    }
                 }
                 // should have hiring location information
                 if ((columns[(int)_vets4212Fields.typeOfForm] == "MSC") || (columns[(int)_vets4212Fields.typeOfForm] == "MHL"))
                 {
                     // hiring location name
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationName]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Name is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Name is required for form type Hiring Location or State Consolidated.", row));
+                    }
 
                     // hiring location street
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationStreet]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Street is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Street is required for form type Hiring Location or State Consolidated.", row));
+                    }
 
                     // hiring location city
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationCity]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location City is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location City is required for form type Hiring Location or State Consolidated.", row));
+                    }
 
                     // hiring location county
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationCounty]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location County is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location County is required for form type Hiring Location or State Consolidated.", row));
+                    }
 
                     // hiring location state
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationState]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location State is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location State is required for form type Hiring Location or State Consolidated.", row));
+                    }
 
                     // hiring location zipcode
                     if (string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.hiringLocationZipcode]))
+                    {
                         comments.AppendLine(string.Format("Row [{0:#,##0}] Hiring Location Zipcode is required for form type Hiring Location or State Consolidated.", row));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] Hiring Location Zipcode is required for form type Hiring Location or State Consolidated.", row));
+                    }
                 }
 
                 // check items based on type of reporting
@@ -2102,6 +2184,7 @@ namespace gov.dol.vets.utilities
                     {
                         // add coment for this row and column
                         comments.AppendLine(string.Format("Row [{0:#,##0}] {1} is required.", row, evalRecord[(int)_vets4212RecordColumns.name]));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] {1} is required.", row, evalRecord[(int)_vets4212RecordColumns.name]));
                     }
                     else numLocations = int.Parse(columns[(int)_vets4212Fields.numberOfMSCLocations]);
 
@@ -2133,7 +2216,10 @@ namespace gov.dol.vets.utilities
                     evalRecord = ((object[])_vets4212Record[i]);
                     eval2Record = ((object[])_vets4212Record[i + 11]);
                     if (compareValue < value)
+                    {
                         comments.AppendLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)eval2Record[(int)_vets4212RecordColumns.errorMessage], eval2Record[(int)_vets4212RecordColumns.name])));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)eval2Record[(int)_vets4212RecordColumns.errorMessage], eval2Record[(int)_vets4212RecordColumns.name])));
+                    }
                 }
 
                 // set record names
@@ -2142,7 +2228,10 @@ namespace gov.dol.vets.utilities
                 // make sure 35 total is correct, sum 25 - 34
                 if (!int.TryParse(columns[(int)_vets4212Fields.NumEmps_ProtectedVeterans11], out totalValue)) totalValue = 0;
                 if (total < totalValue)
+                {
                     comments.AppendLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                }
 
                 // set record names
                 evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.NumEmps_TotalAllVeteransNonVeterans11]);
@@ -2150,7 +2239,10 @@ namespace gov.dol.vets.utilities
                 // make sure 46 overall total is correct, sum 36 - 45
                 if (!int.TryParse(columns[(int)_vets4212Fields.NumEmps_TotalAllVeteransNonVeterans11], out totalValue)) totalValue = 0;
                 if (overallTotal < totalValue)
+                {
                     comments.AppendLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                }
 
                 // reset totals
                 total = 0;
@@ -2168,23 +2260,33 @@ namespace gov.dol.vets.utilities
                     evalRecord = ((object[])_vets4212Record[i]);
                     eval2Record = ((object[])_vets4212Record[i + 11]);
                     if (compareValue < value)
+                    {
                         comments.AppendLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)eval2Record[(int)_vets4212RecordColumns.errorMessage], eval2Record[(int)_vets4212RecordColumns.name])));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}] [{1}].", row, string.Format((string)eval2Record[(int)_vets4212RecordColumns.errorMessage], eval2Record[(int)_vets4212RecordColumns.name])));
+                    }
                 }
 
                 // make sure NewHire_TotalAllVeteransNonVeterans11 is greater than NewHire_ProtectedVeterans11
                 if (!int.TryParse(columns[(int)_vets4212Fields.NewHire_ProtectedVeterans11], out totalValue)) totalValue = 0;
                 if (!int.TryParse(columns[(int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11], out overallTotal)) overallTotal = 0;
                 if (overallTotal < totalValue)
+                {
                     comments.AppendLine(string.Format("row [{0:#,##0}]: The value for New Hire Total All Veterans and Non-Veterans must be greater than or equal to New Hire Total Protected Veterans.", row));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}]: The value for New Hire Total All Veterans and Non-Veterans must be greater than or equal to New Hire Total Protected Veterans.", row));
+                }
 
                 // make sure maximum employees is greater than minimum employees
                 int MaxValue, MinValue;
                 if (!int.TryParse(columns[(int)_vets4212Fields.Maximum], out MaxValue)) MaxValue = 0;
                 if (!int.TryParse(columns[(int)_vets4212Fields.Minimum], out MinValue)) MinValue = 0;
                 if (MaxValue < MinValue)
+                {
                     comments.AppendLine(string.Format("row [{0:#,##0}]: The value for Maximum number of employees must be greater than Minimum number of employees", row));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("row [{0:#,##0}]: The value for Maximum number of employees must be greater than Minimum number of employees", row));
+                }
 
                 // good return
+                if (this._logEnabled) this._logWriter.WriteLine("Completed processing VETS-4212 record.");
                 return (true);
             }
             catch (Exception ex)
@@ -2215,6 +2317,7 @@ namespace gov.dol.vets.utilities
             {
                 // add information showing moved to hiring locations file
                 OnMessage(this, new MessageEventArgs("Processing State Consolidated Hiring Locations File..."));
+                if (this._logEnabled) this._logWriter.WriteLine("Processing State Consolidated Hiring Locations File...");
 
                 // local variables
                 string line = string.Empty;
@@ -2232,8 +2335,8 @@ namespace gov.dol.vets.utilities
                         // do we have the correct number of columns
                         if (columns.Length != _vets4212HlRecord.Length)
                         {
-                            comments.AppendLine("Processing hiring locations file...");
                             comments.AppendLine(string.Format("Invalid number of columns, should be {0:#0}, have {1:#0}", _vets4212Record.Length, columns.Length));
+                            if (this._logEnabled) this._logWriter.WriteLine(string.Format("Invalid number of columns, should be {0:#0}, have {1:#0}", _vets4212Record.Length, columns.Length));
                         }
 
                         // increment row counter
@@ -2252,6 +2355,7 @@ namespace gov.dol.vets.utilities
                                 {
                                     // add comment for this row and column
                                     comments.AppendLine(string.Format("Row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
+                                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row [{0:#,##0}] [{1}].", row, string.Format((string)evalRecord[(int)_vets4212RecordColumns.errorMessage], evalRecord[(int)_vets4212RecordColumns.name])));
                                 }
                             }
                         }
@@ -2298,7 +2402,10 @@ namespace gov.dol.vets.utilities
                 {
                     // if value is greater than 1 duplicate
                     if (stateConsolidatedReports[state] > 1)
+                    {
                         comments.AppendLine(string.Format("Multiple State Consolidated Reports for [{0}], only last report will be used.", state.ToUpper()));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Multiple State Consolidated Reports for [{0}], only last report will be used.", state.ToUpper()));
+                    }
                 }
 
                 // did we have all the required locations
@@ -2306,16 +2413,25 @@ namespace gov.dol.vets.utilities
                 {
                     // does key exists in states
                     if (!states.ContainsKey(state))
+                    {
                         comments.AppendLine(string.Format("Missing Hiring Locations for State Consolidated Report on [{0}]", state.ToUpper()));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Missing Hiring Locations for State Consolidated Report on [{0}]", state.ToUpper()));
+                    }
                     else
                     {
                         if (states[state] != stateConsolidatedLocations[state])
+                        {
                             comments.AppendLine(string.Format("Invalid number of Hiring Locations for State Consolidated Report on [{0}], should have been {1} Hiring Locations but found {2}.",
                                 state.ToUpper(), states[state], stateConsolidatedLocations[state]));
+                            if (this._logEnabled)
+                                this._logWriter.WriteLine(string.Format("Invalid number of Hiring Locations for State Consolidated Report on [{0}], should have been {1} Hiring Locations but found {2}.",
+                                    state.ToUpper(), states[state], stateConsolidatedLocations[state]));
+                        }
                     }
                 }
 
                 // good return
+                if (this._logEnabled) this._logWriter.WriteLine("Completed processing hiring locations file.");
                 return (true);
             }
             catch (Exception ex)
@@ -2534,7 +2650,7 @@ namespace gov.dol.vets.utilities
 
             try
             {
-                // first thing is to get the login page and authenticate the VETS-100 siste
+                // first thing is to get the login page and authenticate the VETS-4212 siste
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(loginInformation.Url);
                 request.KeepAlive = true;
                 request.CookieContainer = cookies;
@@ -2543,6 +2659,7 @@ namespace gov.dol.vets.utilities
                 string RequestVerificationToken = string.Empty;
 
                 // get the response
+                if (this._logEnabled) this._logWriter.WriteLine("Attempting to login to website");
                 try
                 {
                     response = request.GetResponse();
@@ -2550,6 +2667,7 @@ namespace gov.dol.vets.utilities
                 catch (Exception ex)
                 {
                     OnMessage(this, new MessageEventArgs(ex.Message));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Unable to login to website: [{0}]", ex.Message));
                     return (false);
                 }
                 if (request.HaveResponse)
@@ -2563,6 +2681,7 @@ namespace gov.dol.vets.utilities
                     string document = reader.ReadLine();
 
                     // go through the document and get the input field
+                    if (this._logEnabled) this._logWriter.WriteLine("Getting __RequestVerificationToken Value");
                     while (!document.Contains("__RequestVerificationToken")) { document = reader.ReadLine(); }
 
                     // get the value of the verification token
@@ -2610,6 +2729,7 @@ namespace gov.dol.vets.utilities
                 requestStream.Write(byteData, 0, byteData.Length);
 
                 // get the response
+                if (this._logEnabled) this._logWriter.WriteLine("Performing website login sequence");
                 response = request.GetResponse();
                 if (request.HaveResponse)
                 {
@@ -2623,11 +2743,13 @@ namespace gov.dol.vets.utilities
                     if (!document.Contains(">Log off<"))
                     {
                         // display message of failure and return
-                        OnMessage(this, new MessageEventArgs("Unable to login to VETS-100 system."));
+                        OnMessage(this, new MessageEventArgs("Unable to login to VETS-4212 system."));
+                        if (this._logEnabled) this._logWriter.WriteLine("Unable to login to VETS-4212 system.");
                         return (false);
                     }
 
-                    OnMessage(this, new MessageEventArgs("Logged into the VETS-100 system."));
+                    OnMessage(this, new MessageEventArgs("Logged into the VETS-4212 system."));
+                    if (this._logEnabled) this._logWriter.WriteLine("Logged into the VETS-4212 system.");
 
                     // release resources
                     if (reader != null)
@@ -2653,7 +2775,7 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 // unable to det reportIDs
-                OnMessage(this, new MessageEventArgs(string.Format("Unable to login to the VETS-100 site due to: {0}", ex.Message)));
+                OnMessage(this, new MessageEventArgs(string.Format("Unable to login to the VETS-4212 site due to: {0}", ex.Message)));
 
                 // no good login
                 return (false);
@@ -2685,21 +2807,27 @@ namespace gov.dol.vets.utilities
 
             try
             {
+                if (this._logEnabled) this._logWriter.WriteLine("Getting company information");
                 // make sure we have a valid company number format "T000000"
                 Regex re = new Regex(@"^T[0-9]{6}$");
                 if (!re.IsMatch(CompanyNumber))
                 {
                     OnMessage(this, new MessageEventArgs(string.Format("[{0}] is not a valid company number.", CompanyNumber)));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("[{0}] is not a valid company number.", CompanyNumber));
                     return (false);
                 }
 
                 // create state object for login
                 vets4212Website loginInformation = new vets4212Website(LoginAddress, Username, Password, InternalAccess);
 
-                // attempt to login to VETS-100 system
-                if (!loginToVets100Site(loginInformation, out cookies)) return (false);
+                // attempt to login to VETS-4212 system
+                if (!loginToVets100Site(loginInformation, out cookies))
+                {
+                    if (this._logEnabled) this._logWriter.WriteLine("Unable to login to the website");
+                    return (false);
+                }
 
-                // first thing is to get the login page and authenticate the VETS-100 siste
+                // first thing is to get the login page and authenticate the VETS-4212 siste
                 /***********************************************************************************************************
                  ** Extrnal: https://vets100.dol.gov/vets100/External/Company/View/<company number>
                  ** Internal https://vets100.dol.gov/vets100/Internal/Company/View/<company number>
@@ -2711,6 +2839,7 @@ namespace gov.dol.vets.utilities
                 request.CookieContainer = cookies;
 
                 // get the response
+                if (this._logEnabled) this._logWriter.WriteLine("Attempting to get the company information page.");
                 response = request.GetResponse();
                 if (request.HaveResponse)
                 {
@@ -2737,6 +2866,7 @@ namespace gov.dol.vets.utilities
                         responseStream = null;
                     }
 
+                    if (this._logEnabled) this._logWriter.WriteLine("Parsing Html document for company information.");
                     // Use HtmlDocument for parsing
                     HtmlAgilityPack.HtmlDocument document = new HtmlAgilityPack.HtmlDocument();
                     document.LoadHtml(page.ToString());
@@ -2831,12 +2961,14 @@ namespace gov.dol.vets.utilities
                 }
 
                 // good return
+                if (this._logEnabled) this._logWriter.WriteLine("Completed getting company information.");
                 return (true);
             }
             catch (Exception ex)
             {
                 // unable to det reportIDs
                 OnMessage(this, new MessageEventArgs(string.Format("Unable to get company information due to: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Unable to get company information due to: {0}", ex.Message));
 
                 // no good login
                 return (false);
@@ -2928,11 +3060,21 @@ namespace gov.dol.vets.utilities
                 }
 
                 // now we have all the required reportIDs, next step is to actually retrieve each of the reports.
-                // attempt to login to VETS-100 system
-                if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies)) return;
+                // attempt to login to VETS-4212 system
+                if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies))
+                {
+                    if (this._logEnabled) this._logWriter.WriteLine("Unable to login to website.");
+                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to login to website"));
+                    return;
+                }
 
                 // now we need to perform a report query
-                if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, out ReportIDs)) return;
+                if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, out ReportIDs))
+                {
+                    if (this._logEnabled) this._logWriter.WriteLine("Unable to get ReportIDs using JSON");
+                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to get ReportIDs using JSON"));
+                    return;
+                }
 
                 // get each of the PDF reports
                 // open the file for writing
@@ -2951,6 +3093,7 @@ namespace gov.dol.vets.utilities
                 pdfFile.Options.CompressContentStreams = true;
 
                 // go through each report ID and request PDF
+                if (this._logEnabled) this._logWriter.WriteLine("Getting each PDF report from website");
                 foreach (string report in ReportIDs)
                 {
                     // attempt to get the requested PDF and add to file
@@ -2976,6 +3119,7 @@ namespace gov.dol.vets.utilities
 
                                     // update environment information
                                     OnEnvironment(this, new EnvironmentEventArgs(GC.GetTotalMemory(false), pdfFile.PageCount, pdfFileStream.Length));
+                                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Total Memory: {0} Page Count: {1} PDF Stream Length: {2:#,##0}", GC.GetTotalMemory(false), pdfFile.PageCount, pdfFileStream.Length));
 
                                     // if the file is loarger than 10MB start new file
                                     if (pdfFile.PageCount == 317)
@@ -3006,6 +3150,7 @@ namespace gov.dol.vets.utilities
 
                                     // wait for a short period
                                     OnMessage(this, new MessageEventArgs(string.Format("Waiting 5 minutes, current memory {0:#,##0}", preMemoryUsed)));
+                                    if (this._logEnabled) this._logWriter.Write(string.Format("Waiting 5 minutes, current memory {0:#,##0}", preMemoryUsed));
                                     Thread.Sleep(500000);
 
                                     // collect unused memory
@@ -3014,9 +3159,11 @@ namespace gov.dol.vets.utilities
                                     // get the current meory being used
                                     long postMemoryUsed = GC.GetTotalMemory(true);
                                     OnMessage(this, new MessageEventArgs(string.Format("After collect current memory {0:#,##0}", preMemoryUsed)));
+                                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("After collect current memory {0:#,##0}", preMemoryUsed));
 
                                     // display message for continue
                                     OnMessage(this, new MessageEventArgs("Memory collection was performed due to out of memory condition."));
+                                    if (this._logEnabled) this._logWriter.WriteLine("Memory collection was performed due to out of memory condition.");
 
                                     // attempt to add the page
                                     pdfFile.Pages.Add(pdfDoc.Pages[idx]);
@@ -3038,12 +3185,17 @@ namespace gov.dol.vets.utilities
 
                             // let user know we are waiting
                             OnMessage(this, new MessageEventArgs("Waiting a minute before attempting to log back into the site."));
+                            if (this._logEnabled) this._logWriter.WriteLine("Waiting a minute before attempting to log back into the site.");
 
                             // sleep 1 minute
                             Thread.Sleep(60000);
 
                             // attempt login
-                            if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies)) return;
+                            if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies))
+                            {
+                                OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to continue due to unable to login to website."));
+                                return;
+                            }
                         }
 
                         // increment count
@@ -3071,6 +3223,7 @@ namespace gov.dol.vets.utilities
 
                 // completed the process
                 OnPdfReportsCompleted(this, new PDFEventArgs(ReportIDs.Count, string.Format("Completed processing {0} reports...", ReportIDs.Count)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing {0} reports...", ReportIDs.Count));
             }
             catch (Exception ex)
             {
@@ -3103,6 +3256,8 @@ namespace gov.dol.vets.utilities
 
                 // read in contents of file
                 string data = System.IO.File.ReadAllText(((vets4212StateObject)fixFlatFileInformation).DataFilename);
+                if (this._logEnabled)
+                    this._logWriter.WriteLine(string.Format("Read in all data from file [{0}]", ((vets4212StateObject)fixFlatFileInformation).DataFilename));
 
                 // use a reader to go line by line
                 System.IO.TextReader reader = new System.IO.StringReader(data);
@@ -3112,6 +3267,7 @@ namespace gov.dol.vets.utilities
                 // configure for writing
                 StringBuilder writer = new StringBuilder();
 
+                if (this._logEnabled) this._logWriter.WriteLine("Starting to process each row of data.");
                 while ((line = reader.ReadLine()) != null)
                 {
                     // split the line into units
@@ -3120,6 +3276,7 @@ namespace gov.dol.vets.utilities
 
                     // update message for current row
                     OnMessage(this, new MessageEventArgs(string.Format("Processing data from row [{0:#,##0}]", row)));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Processing data from row [{0:#,##0}]", row));
 
                     // get appSetting bypassCompanyValidation
                     bool bypassCompanyValidation = false;
@@ -3134,7 +3291,7 @@ namespace gov.dol.vets.utilities
                     // get company information for comparison
                     CompanyInformation cInfo = null;
 
-                    if (bypassCompanyValidation)
+                    if (!bypassCompanyValidation)
                     {
                         // first do we already have the record
                         foreach (CompanyInformation ci in companyInfo)
@@ -3152,6 +3309,7 @@ namespace gov.dol.vets.utilities
                             fixFlatFileInfo.WebAddress, fixFlatFileInfo.InternalAccess, columns[(int)_vets4212Fields.companyNumber], out cInfo, out cookies)))
                         {
                             comments.AppendLine("Processing stopped due to: Unable to get company information");
+                            if (this._logEnabled) this._logWriter.WriteLine("Processing stopped due to: Unable to get company information.");
                             valid = false;
                         }
 
@@ -3163,38 +3321,44 @@ namespace gov.dol.vets.utilities
                     if (columns.Length != _vets4212Record.Length)
                     {
                         comments.AppendLine(string.Format("Invalid number of columns, should be {0}, but have {1:#0}", _vets4212Record.Length, columns.Length));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Invalid number of columns, should be {0}, but have {1:#0}", _vets4212Record.Length, columns.Length));
                         valid = false;
                     }
 
                     if (valid)
                     {
-                        if (bypassCompanyValidation)
+                        if (!bypassCompanyValidation)
                         {
+                            if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with parent comapny information.");
+
                             // correct any problems with parent company information
-                            if (cInfo.CompanyName != columns[(int)_vets4212Fields.parentCompanyName])
+                            if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyName] = cInfo.CompanyName;
-                            if (cInfo.Address != columns[(int)_vets4212Fields.parentCompanyStreet])
+                            if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyStreet] = cInfo.Address;
-                            if (cInfo.County != columns[(int)_vets4212Fields.parentCompanyCounty])
+                            if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyCounty] = cInfo.County;
-                            if (cInfo.City != columns[(int)_vets4212Fields.parentCompanyCity])
+                            if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyCity] = cInfo.City;
-                            if (cInfo.State != columns[(int)_vets4212Fields.parentCompanyState])
+                            if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyState] = cInfo.State;
-                            if (cInfo.Zipcode != columns[(int)_vets4212Fields.parentCompanyZipcode])
+                            if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], false) != 0)
                                 columns[(int)_vets4212Fields.parentCompanyZipcode] = cInfo.Zipcode;
+
+                            if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with contact information.");
 
                             // correct any problems with contact information
                             string companyContact = string.Format("{0} {1}", cInfo.Firstname, cInfo.Lastname);
-                            if (companyContact != columns[(int)_vets4212Fields.companyContact])
+                            if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], false) != 0)
                                 columns[(int)_vets4212Fields.companyContact] = string.Format("{0} {1}", cInfo.Firstname, cInfo.Lastname);
-                            if (cInfo.Phone != columns[(int)_vets4212Fields.companyContactTelephone])
+                            if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], false) != 0)
                                 columns[(int)_vets4212Fields.companyContactTelephone] = cInfo.Phone;
-                            if (cInfo.Email != columns[(int)_vets4212Fields.compoanyContactEmail])
+                            if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], false) != 0)
                                 columns[(int)_vets4212Fields.compoanyContactEmail] = cInfo.Email;
                         }
 
                         // correct any problems with DUNS, EIN, NAICS
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with DUNS");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.DUNS]);
                         if (((bool)(evalRecord[(int)_vets4212RecordColumns.required])) || (!string.IsNullOrEmpty(columns[(int)_vets4212Fields.DUNS])))
                         {
@@ -3203,6 +3367,7 @@ namespace gov.dol.vets.utilities
                             if (!re.IsMatch(columns[(int)_vets4212Fields.DUNS]))
                                 columns[(int)_vets4212Fields.DUNS] = cInfo.DUNS;
                         }
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with EIN");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.FEIN]);
                         if (((bool)(evalRecord[(int)_vets4212RecordColumns.required])) || (!string.IsNullOrEmpty(columns[(int)_vets4212Fields.FEIN])))
                         {
@@ -3211,6 +3376,7 @@ namespace gov.dol.vets.utilities
                             if (!re.IsMatch(columns[(int)_vets4212Fields.FEIN]))
                                 columns[(int)_vets4212Fields.FEIN] = cInfo.EIN;
                         }
+                        if (this._logEnabled) this._logWriter.WriteLine("Correctlng any errors with NAICS");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.NAICS]);
                         if (((bool)(evalRecord[(int)_vets4212RecordColumns.required])) || (!string.IsNullOrEmpty(columns[(int)_vets4212Fields.NAICS])))
                         {
@@ -3222,6 +3388,7 @@ namespace gov.dol.vets.utilities
 
                         // look at hiring location information also based on type of report HQ nad S has no hiring location
                         // hiring location name
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations based on type MSC or MHL.");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationName]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3241,6 +3408,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location street
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations street address.");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationStreet]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3263,6 +3431,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location street 2
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring location street address 2");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationStreet2]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3285,6 +3454,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location county
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations county");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationCounty]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3304,6 +3474,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location city
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations city");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationCity]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3323,6 +3494,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location state
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations state");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationState]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3342,6 +3514,7 @@ namespace gov.dol.vets.utilities
                         }
 
                         // hiring location zipcode
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with hiring locations zip code");
                         evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.hiringLocationZipcode]);
                         if ((columns[(int)_vets4212Fields.typeOfForm] == "MHL") || (columns[(int)_vets4212Fields.typeOfForm] == "MSC"))
                         {
@@ -3363,6 +3536,7 @@ namespace gov.dol.vets.utilities
                         // process actual values to make sure they are correct
                         int total = 0, overallTotal = 0, totalValue = 0;
 
+                        if (this._logEnabled) this._logWriter.WriteLine("Correcting any errors with reporting numeric data.");
                         // make sure we have valid numbers
                         for (int i = (int)_vets4212Fields.NumEmps_ProtectedVeterans1; i < (int)_vets4212Fields.NumEmps_ProtectedVeterans11; i++)
                         {
@@ -3432,10 +3606,12 @@ namespace gov.dol.vets.utilities
 
                 // write all back to file
                 string filename = Path.Combine(Path.GetDirectoryName(fixFlatFileInfo.DataFilename), string.Format("Corrected_{0}", Path.GetFileName(fixFlatFileInfo.DataFilename)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Saving corrected data back to file [{0}]", filename));
                 System.IO.File.WriteAllText(filename, writer.ToString());
 
                 // update message
                 OnFixFlatFileCompleted(this, new FixFlatFileEventArgs(string.Format("Completed fixing file, corrected file: {0}", filename)));
+                if (this._logEnabled) this._logWriter.WriteLine("Completed fixing any found errors.");
             }
             catch (Exception ex)
             {
@@ -3464,15 +3640,20 @@ namespace gov.dol.vets.utilities
 
                 // add header for processing information
                 OnMessage(this, new MessageEventArgs("Processing VETS-4212 report data file..."));
+                if (this._logEnabled) this._logWriter.WriteLine("Processing VETS-4212 report data file...");
 
                 // read in contents of file
                 string data = System.IO.File.ReadAllText(((vets4212StateObject)flatFileInformation).DataFilename);
+                if (this._logEnabled)
+                    this._logWriter.WriteLine(string.Format("Read in contents of data file with filename [{0}].",
+                    ((vets4212StateObject)flatFileInformation).DataFilename));
 
                 // use a reader to go line by line
                 System.IO.TextReader reader = new System.IO.StringReader(data);
                 string line = null;
                 int row = 0;
 
+                if (this._logEnabled) this._logWriter.WriteLine("Starting to process each row of data.");
                 while ((line = reader.ReadLine()) != null)
                 {
                     // split the line into units
@@ -3480,6 +3661,7 @@ namespace gov.dol.vets.utilities
 
                     // update message for current row
                     OnMessage(this, new MessageEventArgs(string.Format("Processing data from row [{0:#,##0}]", row)));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("Processing data from row [{0:#,##0}]", row));
 
                     // process current row of data
                     if (!string.IsNullOrWhiteSpace(line))
@@ -3492,13 +3674,17 @@ namespace gov.dol.vets.utilities
 
                 // make sure we have state consolidate file if reporst exists
                 if ((string.IsNullOrWhiteSpace(((vets4212StateObject)flatFileInformation).HiringLocationDataFilename)) && (SCStates.Count > 0))
+                {
                     comments.AppendLine("State Consolidated Hiring Locations File is required when there are State Consolidated reports.");
+                    if (this._logEnabled) this._logWriter.WriteLine("State consolidated hiring locations file is required when there are state consolidated reports.");
+                }
 
                 // do we have a state consolidated flat file for hiring locations
                 if (!string.IsNullOrWhiteSpace(((vets4212StateObject)flatFileInformation).HiringLocationDataFilename))
                 {
                     // get the contents of file
                     data = System.IO.File.ReadAllText(((vets4212StateObject)flatFileInformation).HiringLocationDataFilename);
+                    if (this._logEnabled) this._logWriter.WriteLine("Starting to process hiring locations file.");
 
                     // process current row of data
                     processVets4212HlRecords(data, SCStates, ref comments, ref stats);
@@ -3521,6 +3707,7 @@ namespace gov.dol.vets.utilities
 
                 // update message
                 OnEvaluateFlatFileCompleted(this, new EvaluateFlatFileEventArgs(string.Format("Completed processing file: {0}", ((vets4212StateObject)flatFileInformation).DataFilename)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing file: {0}", ((vets4212StateObject)flatFileInformation).DataFilename));
             }
             catch (Exception ex)
             {

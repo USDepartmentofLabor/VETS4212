@@ -94,7 +94,9 @@ namespace gov.dol.vets.utilities
                     searchAddress, companyName.Text, filingCycle.Text, ReportType.Text, companyNumber.Text, internalAccess);
 
                 // create handler for process
-                vets4212 handler = new vets4212();
+                bool logEnabled = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["logEnabled"], out logEnabled)) logEnabled = false;
+                vets4212 handler = new vets4212(logEnabled);
 
                 // add event handlers
                 handler.Message += new vets4212.MessageEventHandler(Vets4212_Message);
@@ -188,7 +190,9 @@ namespace gov.dol.vets.utilities
                 }
 
                 // create vets4212 handler
-                vets4212 handler = new vets4212();
+                bool logEnabled = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["logEnabled"], out logEnabled)) logEnabled = false;
+                vets4212 handler = new vets4212(logEnabled);
 
                 // get value of internalAccess in appConfig
                 bool internalAccess = false;
@@ -277,7 +281,9 @@ namespace gov.dol.vets.utilities
                 }
 
                 // create vets4212 handler
-                vets4212 handler = new vets4212();
+                bool logEnabled = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["logEnabled"], out logEnabled)) logEnabled = false;
+                vets4212 handler = new vets4212(logEnabled);
 
                 // get value of internalAccess in appConfig
                 bool internalAccess = false;
@@ -425,7 +431,9 @@ namespace gov.dol.vets.utilities
                 dataDotGovStateObject data = new dataDotGovStateObject(dataDotGovUrl, companyName.Text, ReportType.Text, filingCycle.Text, naics.Text, sfd.FileName);
 
                 // create handler for vets4212
-                vets4212 handler = new vets4212();
+                bool logEnabled = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["logEnabled"], out logEnabled)) logEnabled = false;
+                vets4212 handler = new vets4212(logEnabled);
 
                 // add event handlers
                 handler.Message += new vets4212.MessageEventHandler(Vets4212_Message);
