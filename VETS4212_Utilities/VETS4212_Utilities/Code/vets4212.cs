@@ -1622,6 +1622,53 @@ namespace gov.dol.vets.utilities
                 // reset JSONData
                 JSONData = "";
 
+                // Get the listing of all reports entered based on given information
+                //if (!getAllReportIDsFromJSON(0, int.Parse(numRecords),ref ReportIDs, state, ref cookies))
+                //{
+                //    // bad result
+                //    return (false);
+                //}
+                // get in groups of 1000 so we don't gag the server
+                for (int i = 0; i < int.Parse(numRecords); i += 100)
+                {
+                    OnMessage(this, new MessageEventArgs(string.Format("Getting Report IDs {0:#,##0} of {1:#,##0}", i, int.Parse(numRecords))));
+                    if (!getAllReportIDsFromJSON(i, ((int.Parse(numRecords) - i) > 100) ? 100 : int.Parse(numRecords) - i, ref ReportIDs, state, ref cookies))
+                    {
+                        // bad result
+                        return (false);
+                    }
+                }
+
+                // have the data
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed getting {0:#,##0} report IDs using JSON", ReportIDs.Count));
+                return (true);
+            }
+            catch (Exception ex)
+            {
+                OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message));
+
+                // bad return
+                return (false);
+            }
+        }
+        private bool getAllReportIDsFromJSON(int startRecord, int numRecords, ref ArrayList ReportIDs, pdfStateObject state, ref System.Net.CookieContainer cookies)
+        {
+            // web streams
+            System.Net.HttpWebRequest request = null;
+            System.Net.WebResponse response = null;
+            System.IO.Stream responseStream = null;
+
+            // local veriables
+            Password nd = new Password(12, 24, false, false, true, false);
+            Encoding encoding = Encoding.GetEncoding(1252);
+            string inputData = string.Empty;
+            string[] records = new string[] { };
+            byte[] byteData = null;
+            string JSONData = "";
+
+            try
+            {
                 // rebuild query using number of records to retrieve all records
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(((pdfStateObject)state).reportSearchAddress);
                 request.KeepAlive = true;
@@ -1636,11 +1683,11 @@ namespace gov.dol.vets.utilities
                  ** Internal: _search=false&nd=1432327903502&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle=2014&FormType=VETS100A&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber=T140375&EIN=&DUNS=&LocationName=&LocationState=TN&PointOfContact=
                  ******************************************************************************************************************************************************************************/
                 if (((pdfStateObject)state).InternalAccess)
-                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx=&sord=asc&ReportId=&FilingCycle={2}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={3}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
-                        nd.CreatePassword(), numRecords, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
+                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&ReportId=&FilingCycle={3}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={4}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                        nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
                 else
-                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx=&sord=asc&FilterCriteria.CompanyNumber={2}&FilterCriteria.FilingCycle={3}&FilterCriteria.FormType=",
-                        nd.CreatePassword(), numRecords, ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle);
+                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&FilterCriteria.CompanyNumber={3}&FilterCriteria.FilingCycle={4}&FilterCriteria.FormType=",
+                        nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle);
 
                 // encode data as ASCII
                 //ASCIIEncoding encoding = new ASCIIEncoding();
@@ -1651,7 +1698,7 @@ namespace gov.dol.vets.utilities
                 request.ContentLength = byteData.Length;
 
                 // get the request stream
-                requestStream = request.GetRequestStream();
+                System.IO.Stream requestStream = request.GetRequestStream();
                 requestStream.Write(byteData, 0, byteData.Length);
 
                 // get the response
@@ -1709,8 +1756,7 @@ namespace gov.dol.vets.utilities
                     }
                 }
 
-                // have the data
-                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed getting {0:#,##0} report IDs using JSON", ReportIDs.Count));
+                // good result
                 return (true);
             }
             catch (Exception ex)
@@ -1718,7 +1764,7 @@ namespace gov.dol.vets.utilities
                 OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message)));
                 if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting report IDs from JSON with message: {0}", ex.Message));
 
-                // bad return
+                // bad response return false
                 return (false);
             }
         }
@@ -3598,6 +3644,19 @@ namespace gov.dol.vets.utilities
                         if (!int.TryParse(columns[(int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11], out overallTotal)) overallTotal = 0;
                         if (overallTotal < totalValue)
                             columns[(int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11] = totalValue.ToString();
+
+                        // make sure we don't have any null values
+                        for (int i = (int)_vets4212Fields.NumEmps_ProtectedVeterans1; i < (int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11; i++)
+                        {
+                            // determine if the value is numeric or not
+                            int value = 0;
+                            if (!int.TryParse(columns[i], out value))
+                            {
+                                // zero the value
+                                value = 0;
+                                columns[i] = value.ToString();
+                            }
+                        }
 
                         // write the line of data to writer
                         writer.AppendLine(string.Join(",", columns));
