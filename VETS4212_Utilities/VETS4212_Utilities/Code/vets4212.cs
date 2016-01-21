@@ -2921,12 +2921,12 @@ namespace gov.dol.vets.utilities
                     List<HtmlAgilityPack.HtmlNode> divs = document.DocumentNode.Descendants().Where (
                         x => (x.Name == "div" && x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("ym-fbox-text"))).ToList();
 
-                    // get each of the company information values
-                    string label = string.Empty;
-                    string value = string.Empty;
-
                     foreach (HtmlAgilityPack.HtmlNode node in divs)
                     {
+                        // get each of the company information values
+                        string label = string.Empty;
+                        string value = string.Empty;
+
                         // first get the label for data
                         foreach (HtmlAgilityPack.HtmlNode child in node.ChildNodes)
                         {
