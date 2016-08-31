@@ -66,6 +66,8 @@
             this.label14 = new System.Windows.Forms.Label();
             this.naics = new System.Windows.Forms.TextBox();
             this.label15 = new System.Windows.Forms.Label();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.tsbVerificationFile = new System.Windows.Forms.ToolStripButton();
             this.ToolStrip.SuspendLayout();
             this.sbMain.SuspendLayout();
             this.SuspendLayout();
@@ -83,7 +85,9 @@
             this.toolStripSeparator2,
             this.tsbFixFlatFile,
             this.toolStripSeparator3,
-            this.tsbReportData});
+            this.tsbReportData,
+            this.toolStripSeparator4,
+            this.tsbVerificationFile});
             this.ToolStrip.Location = new System.Drawing.Point(0, 0);
             this.ToolStrip.Name = "ToolStrip";
             this.ToolStrip.Size = new System.Drawing.Size(504, 25);
@@ -99,7 +103,7 @@
             this.tsbGeneratePDFs.Image = ((System.Drawing.Image)(resources.GetObject("tsbGeneratePDFs.Image")));
             this.tsbGeneratePDFs.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbGeneratePDFs.Name = "tsbGeneratePDFs";
-            this.tsbGeneratePDFs.Size = new System.Drawing.Size(85, 22);
+            this.tsbGeneratePDFs.Size = new System.Drawing.Size(90, 22);
             this.tsbGeneratePDFs.Text = "&Generate PDF\'s";
             this.tsbGeneratePDFs.ToolTipText = "Generate PDF Reports based on Report Type, Filing Cycle, and Company Number";
             this.tsbGeneratePDFs.Click += new System.EventHandler(this.tsbGeneratePDFs_Click);
@@ -118,7 +122,7 @@
             this.tsbEvaluateFlatFile.Image = ((System.Drawing.Image)(resources.GetObject("tsbEvaluateFlatFile.Image")));
             this.tsbEvaluateFlatFile.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbEvaluateFlatFile.Name = "tsbEvaluateFlatFile";
-            this.tsbEvaluateFlatFile.Size = new System.Drawing.Size(93, 22);
+            this.tsbEvaluateFlatFile.Size = new System.Drawing.Size(98, 22);
             this.tsbEvaluateFlatFile.Text = "&Evaluate Flat File";
             this.tsbEvaluateFlatFile.ToolTipText = "Evaluate a Flat File prior to submitting";
             this.tsbEvaluateFlatFile.Click += new System.EventHandler(this.tsbEvaluateFlatFile_Click);
@@ -137,7 +141,7 @@
             this.tsbFixFlatFile.Image = ((System.Drawing.Image)(resources.GetObject("tsbFixFlatFile.Image")));
             this.tsbFixFlatFile.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbFixFlatFile.Name = "tsbFixFlatFile";
-            this.tsbFixFlatFile.Size = new System.Drawing.Size(65, 22);
+            this.tsbFixFlatFile.Size = new System.Drawing.Size(68, 22);
             this.tsbFixFlatFile.Text = "&Fix Flat File";
             this.tsbFixFlatFile.ToolTipText = "Fix Flat File issues prior to submitting";
             this.tsbFixFlatFile.Click += new System.EventHandler(this.tsbFixFlatFile_Click);
@@ -155,7 +159,7 @@
             this.tsbReportData.Image = ((System.Drawing.Image)(resources.GetObject("tsbReportData.Image")));
             this.tsbReportData.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbReportData.Name = "tsbReportData";
-            this.tsbReportData.Size = new System.Drawing.Size(70, 22);
+            this.tsbReportData.Size = new System.Drawing.Size(75, 22);
             this.tsbReportData.Text = "&DataDotGov";
             this.tsbReportData.ToolTipText = "Get VETS-4212, VETS-100, or VETS-100A report data from DataDotGov";
             this.tsbReportData.Click += new System.EventHandler(this.tsbReportData_Click);
@@ -431,6 +435,21 @@
             this.label15.TabIndex = 63;
             this.label15.Text = "DataDotGov ONLY";
             // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(6, 25);
+            // 
+            // tsbVerificationFile
+            // 
+            this.tsbVerificationFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbVerificationFile.Image = ((System.Drawing.Image)(resources.GetObject("tsbVerificationFile.Image")));
+            this.tsbVerificationFile.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbVerificationFile.Name = "tsbVerificationFile";
+            this.tsbVerificationFile.Size = new System.Drawing.Size(92, 22);
+            this.tsbVerificationFile.Text = "Verification File";
+            this.tsbVerificationFile.Click += new System.EventHandler(this.tsbVerificationFile_Click);
+            // 
             // External
             // 
             this.AccessibleDescription = "Application used to work VETS-4212/100/100A reports and data";
@@ -520,6 +539,8 @@
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.TextBox naics;
         private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
+        private System.Windows.Forms.ToolStripButton tsbVerificationFile;
     }
 }
 

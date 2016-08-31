@@ -19,6 +19,7 @@ namespace gov.dol.vets.utilities
         private delegate void pdfReportsCompleteDelegate();
         private delegate void evaluateFlatFileCompletedDelegate();
         private delegate void fixFlatFileCompletedDelegate();
+        private delegate void verificationFileCompletedDelegate(List<ReportInformation> ReportData, string message);
 
         public External()
         {
@@ -467,6 +468,106 @@ namespace gov.dol.vets.utilities
                 // show message and reenable button
                 MessageBox.Show(e.Message, "Completed DataDotGov Process");
                 this.Invoke(new pdfReportsCompleteDelegate(ReportDataCompleted));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
+            }
+        }
+
+        private void tsbVerificationFile_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // use stringBuilder for error messages
+                StringBuilder message = new StringBuilder();
+
+                // verify and validate parameters
+                Regex re = new Regex(@"^[\d]{4}$");
+                if (!re.IsMatch(filingCycle.Text))
+                    message.AppendLine("Invalid Filing Cycle Value.");
+
+                // make sure we have a username
+                if (string.IsNullOrWhiteSpace(username.Text))
+                    message.AppendLine("No Username was entered.");
+
+                // make sure we have a password
+                if (string.IsNullOrWhiteSpace(password.Text))
+                    message.AppendLine("No Password was entered.");
+
+                // did we have any errors
+                if (!string.IsNullOrWhiteSpace(message.ToString()))
+                {
+                    MessageBox.Show(message.ToString(), "Invalid data");
+                    return;
+                }
+
+                // disable the generate pdf button so they don't double tap
+                tsbGeneratePDFs.Enabled = false;
+
+                // get value of internalAccess in appConfig
+                bool internalAccess = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["internalAccess"], out internalAccess)) internalAccess = false;
+
+                // get URL's from App.Config
+                string loginAddress = ConfigurationManager.AppSettings["webAddress"];
+                string reportInformationAddress = ConfigurationManager.AppSettings["reportInformationAddress"];
+                string reportSearchAddress = ConfigurationManager.AppSettings["searchAddress"];
+                if (string.IsNullOrWhiteSpace(loginAddress) || string.IsNullOrWhiteSpace(reportInformationAddress) || 
+                    string.IsNullOrWhiteSpace(reportSearchAddress))
+                {
+                    MessageBox.Show("Validation File has been cancelled due to invalid configuration", "Error in configuration");
+                    return;
+                }
+                // correct report information address for formatting
+                if (reportInformationAddress.Substring(reportInformationAddress.Length - 1, 1) != "/")
+                    reportInformationAddress += "/{0}";
+                else
+                    reportInformationAddress += "{0}";
+
+                // create a pdfStateObject
+                pdfStateObject reportInformation = new pdfStateObject(username.Text, password.Text, loginAddress, reportInformationAddress, 
+                    reportSearchAddress, filingCycle.Text, internalAccess);
+
+                // create handler for process
+                bool logEnabled = false;
+                if (!bool.TryParse(ConfigurationManager.AppSettings["logEnabled"], out logEnabled)) logEnabled = false;
+                vets4212 handler = new vets4212(logEnabled);
+
+                // add event handlers
+                handler.Message += new vets4212.MessageEventHandler(Vets4212_Message);
+                handler.VerificationFileCompleted += new vets4212.VerificationFileCompletedEventHandler(Handler_VerificationFileCompleted);
+
+                // run process on a thread
+                ThreadPool.QueueUserWorkItem(handler.getValidationFileInformation_QueueUserWorkItem, reportInformation);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
+            }
+        }
+
+        private void Handler_VerificationFileCompleted(object sender, VerificationFileEventArgs e)
+        {
+            try
+            {
+                // we completed the process show message on completion
+                MessageBox.Show(e.Message, "Verification File Completed");
+
+                // reenable the button
+                this.Invoke(new verificationFileCompletedDelegate(VerificationFileCompleted), new object[] { e.ReportData, e.Message });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error");
+            }
+        }
+        private void VerificationFileCompleted(List<ReportInformation> ReportData, string message)
+        {
+            try
+            {
+                // update message
+                StatusBar.Text = message;
             }
             catch (Exception ex)
             {

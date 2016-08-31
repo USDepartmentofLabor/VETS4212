@@ -110,6 +110,8 @@ namespace gov.dol.vets.utilities
         private string _webAddress = null;
         private string _pdfAddress = null;
         private string _reportIDUrl = null;
+        private string _loginAddress = null;
+        private string _reportInformationAddress = null;
         private string _reportSearchUrl = null;
         private string _companyName = null;
         private string _filingCycle = null;
@@ -117,6 +119,18 @@ namespace gov.dol.vets.utilities
         private string _companyNumber = null;
         private bool _internalAccess = false;
 
+        public pdfStateObject(string Username, string Password, string LoginAddress, string ReportInformationAddress, 
+            string ReportSearchAddress, string FilingCycle, bool InternalAccess)
+        {
+            this._username = Username;
+            this._password = Password;
+            this._loginAddress = LoginAddress;
+            this._webAddress = LoginAddress;
+            this._reportInformationAddress = ReportInformationAddress;
+            this._filingCycle = FilingCycle;
+            this._internalAccess = InternalAccess;
+            this._reportSearchUrl = ReportSearchAddress;
+        }
         public pdfStateObject(string reportIDUrl, string Username, string Password, string Filename, string webAddress,
             string pdfAddress, string reportSearchAddress, string companyName, string filingCycle, string reportType)
         {
@@ -155,6 +169,8 @@ namespace gov.dol.vets.utilities
         public string pdfAddress { get { return this._pdfAddress; } }
         public string reportIDUrl { get { return this._reportIDUrl; } }
         public string reportSearchAddress { get { return this._reportSearchUrl; } }
+        public string LoginAddress { get { return this._loginAddress; } }
+        public string ReportInformationAddress { get { return this._reportInformationAddress; } }
         public string CompanyName { get { return this._companyName; } }
         public string FilingCycle { get { return this._filingCycle; } }
         public string ReportType { get { return this._reportType; } }
@@ -302,6 +318,279 @@ namespace gov.dol.vets.utilities
             set { this._zipcode = value; }
         }
     }
+    // Report Information
+    public class ReportInformation
+    {
+        private string _companyName = string.Empty;
+        private string _companyNumber = string.Empty;
+        private string _ein = string.Empty;
+        private string _duns = string.Empty;
+        private string _naics = string.Empty;
+        private string _companyContact = string.Empty;
+        private string _phoneNumber = string.Empty;
+        private string _emailAddress = string.Empty;
+        private string _address = string.Empty;
+        private string _county = string.Empty;
+        private string _city = string.Empty;
+        private string _state = string.Empty;
+        private string _zipcode = string.Empty;
+        private string _hlName = string.Empty;
+        private string _hladdress = string.Empty;
+        private string _hlcounty = string.Empty;
+        private string _hlcity = string.Empty;
+        private string _hlstate = string.Empty;
+        private string _hlzipcode = string.Empty;
+
+        // creators
+        public ReportInformation(string CompanyName, string CompanyNumber, string EIN, string DUNS, string NAICS, string CompanyContact,
+            string Phone, string Email, string Address, string County, string City, string State, string Zipcode,
+            string HLName, string HLAddress, string HLCounty, string HLCity, string HLState, string HLZipcode)
+        {
+            this._companyName = CompanyName;
+            this._companyNumber = CompanyNumber;
+            this._ein = EIN;
+            this._duns = DUNS;
+            this._naics = NAICS;
+            this._companyContact = CompanyContact;
+            this._phoneNumber = Phone;
+            this._emailAddress = Email;
+            this._address = Address;
+            this._county = County;
+            this._city = City;
+            this._state = State;
+            this._zipcode = Zipcode;
+            this._hlName = HLName;
+            this._hladdress = HLAddress;
+            this._hlcounty = HLCounty;
+            this._hlcity = HLCity;
+            this._hlstate = HLState;
+            this._hlzipcode = HLZipcode;
+        }
+        public ReportInformation()
+        {
+            // nothing to do
+        }
+
+        // properties
+        public string CompanyName
+        {
+            get { return this._companyName; }
+            set { this._companyName = value; }
+        }
+        public string CompanyNumber
+        {
+            get { return this._companyNumber; }
+            set { this._companyNumber = value; }
+        }
+        public string EIN
+        {
+            get { return this._ein; }
+            set { this._ein = value; }
+        }
+        public string DUNS
+        {
+            get { return this._duns; }
+            set { this._duns = value; }
+        }
+        public string NAICS
+        {
+            get { return this._naics; }
+            set { this._naics = value; }
+        }
+        public string CompanyContact
+        {
+            get { return this._companyContact; }
+            set { this._companyContact = value; }
+        }
+        public string Phone
+        {
+            get { return this._phoneNumber; }
+            set { this._phoneNumber = value; }
+        }
+        public string Email
+        {
+            get { return this._emailAddress; }
+            set { this._emailAddress = value; }
+        }
+        public string Address
+        {
+            get { return this._address; }
+            set { this._address = value; }
+        }
+        public string County
+        {
+            get { return this._county; }
+            set { this._county = value; }
+        }
+        public string City
+        {
+            get { return this._city; }
+            set { this._city = value; }
+        }
+        public string State
+        {
+            get { return this._state; }
+            set { this._state = value; }
+        }
+        public string Zipcode
+        {
+            get { return this._zipcode; }
+            set { this._zipcode = value; }
+        }
+        public string HLName
+        {
+            get { return (this._hlName); }
+            set { this._hlName = value; }
+        }
+        public string HLAddress
+        {
+            get { return (this._hladdress); }
+            set { this._hladdress = value; }
+        }
+        public string HLCounty
+        {
+            get { return (this._hlcounty); }
+            set { this._hlcounty = value; }
+        }
+        public string HLCity
+        {
+            get { return (this._hlcity); }
+            set { this._hlcity = value; }
+        }
+        public string HLState
+        {
+            get { return (this._hlstate); }
+            set { this._hlstate = value; }
+        }
+        public string HLZipcode
+        {
+            get { return (this._hlzipcode); }
+            set { this._hlzipcode = value; }
+        }
+    }
+    public class VerificationFileRecord
+    {
+        // Type of Report, Company Name, HL Name, Company Address, Company City, Company County, Company State, Company Zip, EIN L4, DUNS, NAICS
+        private string _reportType = "VETS-4212";
+        private string _companyName = null;
+        private string _hiringLocationName = null;
+        private string _address = null;
+        private string _city = null;
+        private string _state = null;
+        private string _zipcode = null;
+        private string _einL4 = null;
+        private string _duns = null;
+        private string _naics = null;
+
+        public VerificationFileRecord()
+        {
+            // nothing to do
+        }
+        public VerificationFileRecord(string CompanyName, string HiringLocationName, string Address, string City, 
+            string State, string Zipcode, string EINL4, string DUNS, string NAICS)
+        {
+            this._companyName = CompanyName;
+            this._hiringLocationName = HiringLocationName;
+            this._address = Address;
+            this._city = City;
+            this._state = State;
+            this._zipcode = Zipcode;
+            this._einL4 = EINL4;
+            this._duns = DUNS;
+            this._naics = NAICS;
+        }
+        public override bool Equals(object obj)
+        {
+            if (object.ReferenceEquals(obj, null)) return false;
+            VerificationFileRecord record = obj as VerificationFileRecord;
+            if (object.ReferenceEquals(record, null)) return false;
+            return Equals(record);
+        }
+        public bool Equals(VerificationFileRecord record)
+        {
+            if (object.ReferenceEquals(record, null)) return false;
+            return (record.ToString().Equals(this.ToString()));
+        }
+        public static bool operator ==(VerificationFileRecord record1, VerificationFileRecord record2)
+        {
+            if (object.ReferenceEquals(record1, null))
+            {
+                if (object.ReferenceEquals(record2, null))
+                    return (true); // both are null
+
+                // only left side is null
+                return (false);
+            }
+
+            // return comparison
+            return record1.Equals(record2);
+        }
+        public static bool operator !=(VerificationFileRecord record1, VerificationFileRecord record2)
+        {
+            return !(record1 == record2);
+        }
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        public string ReportType
+        {
+            get { return (this._reportType); }
+            set { this._reportType = value; }
+        }
+        public string CompanyName
+        {
+            get { return (this._companyName); }
+            set { this._companyName = value; }
+        }
+        public string HiringLocationaname
+        {
+            get { return (this._hiringLocationName); }
+            set { this._hiringLocationName = value; }
+        }
+        public string Address
+        {
+            get { return (this._address); }
+            set { this._address = value; }
+        }
+        public string City
+        {
+            get { return (this._city); }
+            set { this._city = value; }
+        }
+        public string State
+        {
+            get { return (this._state); }
+            set { this._state = value; }
+        }
+        public string Zipcode
+        {
+            get { return (this._zipcode); }
+            set { this._zipcode = value; }
+        }
+        public string EINL4
+        {
+            get { return (this._einL4); }
+            set { this._einL4 = value; }
+        }
+        public string DUNS
+        {
+            get { return (this._duns); }
+            set { this._duns = value; }
+        }
+        public string NAICS
+        {
+            get { return (this._naics); }
+            set { this._naics = value; }
+        }
+        public override string ToString()
+        {
+            return string.Format("{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}",
+                new object[] {this._reportType, this._companyName, this._hiringLocationName, this._address,
+                this._city, this._state, this._zipcode, this._einL4, this.DUNS, this.NAICS });
+        }
+    }
 
     // event arguments for message event
     public class MessageEventArgs : EventArgs
@@ -350,6 +639,23 @@ namespace gov.dol.vets.utilities
 
         public string Message { get { return this._message; } }
         public int NumberOfReports { get { return this._numberOfReports; } }
+    }
+    public class VerificationFileEventArgs : EventArgs
+    {
+        private int _numberOfReports = 0;
+        private string _message = string.Empty;
+        private List<VerificationFileRecord> _reportData = new List<VerificationFileRecord>();
+
+        public VerificationFileEventArgs(int NumberOfReports, string Message, List<VerificationFileRecord> ReportData)
+        {
+            this._numberOfReports = NumberOfReports;
+            this._message = Message;
+            this._reportData = ReportData;
+        }
+
+        public string Message { get { return this._message; } }
+        public int NumberOfReports { get { return this._numberOfReports; } }
+        public List<VerificationFileRecord> ReportData { get { return this._reportData; } }
     }
     public class EvaluateFlatFileEventArgs : EventArgs
     {
@@ -663,6 +969,7 @@ namespace gov.dol.vets.utilities
         public delegate void MessageEventHandler(object sender, MessageEventArgs e);
         public delegate void EnvironmentEventHandler(object sender, EnvironmentEventArgs e);
         public delegate void PDFReportsCompletedEventHandler(object sender, PDFEventArgs e);
+        public delegate void VerificationFileCompletedEventHandler(object sender, VerificationFileEventArgs e);
         public delegate void EvaluateFlatFileCompletedEventHandler(object sender, EvaluateFlatFileEventArgs e);
         public delegate void FixFlatFileCompletedEventHandler(object sender, FixFlatFileEventArgs e);
         public delegate void DataDotGovCompletedEventHandler(object sender, DataDotGovEventArgs e);
@@ -671,6 +978,7 @@ namespace gov.dol.vets.utilities
         public event MessageEventHandler Message;
         public event EnvironmentEventHandler Environment;
         public event PDFReportsCompletedEventHandler PDFReportsCompleted;
+        public event VerificationFileCompletedEventHandler VerificationFileCompleted;
         public event EvaluateFlatFileCompletedEventHandler EvaluateFlatFileCompleted;
         public event FixFlatFileCompletedEventHandler FixFlatFileCompleted;
         public event DataDotGovCompletedEventHandler DataDotGovCompleted;
@@ -1130,6 +1438,26 @@ namespace gov.dol.vets.utilities
             }
         }
         /// <summary>
+        /// Raises an event when creation of the PDF reports have been completed
+        /// </summary>
+        /// <param name="sender">this</param>
+        /// <param name="e">TypeOf VerificationFileEventArgs</param>
+        protected virtual void OnVerificationFileCompleted(object sender, VerificationFileEventArgs e)
+        {
+            try
+            {
+                VerificationFileCompletedEventHandler handler = VerificationFileCompleted;
+                if (handler != null)
+                {
+                    handler(sender, e);
+                }
+            }
+            catch
+            {
+                // handle exception if needed
+            }
+        }
+        /// <summary>
         /// Raises an event when evaluation of batch file process has been completed
         /// </summary>
         /// <param name="sender">this</param>
@@ -1549,8 +1877,14 @@ namespace gov.dol.vets.utilities
                  ******************************************************************************************************************************************************************************/
                 string inputData = null;
                 if (((pdfStateObject)state).InternalAccess)
-                    inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle={1}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={3}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
-                        nd.CreatePassword(), ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType), System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
+                {
+                    if (((pdfStateObject)state).CompanyNumber != null)
+                        inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle={1}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={3}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                            nd.CreatePassword(), ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType), System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
+                    else
+                        inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle={1}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber=&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                            nd.CreatePassword(), ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType));
+                }
                 else
                     inputData = string.Format("_search=false&nd={0}&rows=10&page=1&sidx=&sord=asc&FilterCriteria.CompanyNumber={1}&FilterCriteria.FilingCycle={2}&FilterCriteria.FormType=",
                         nd.CreatePassword(), ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).ReportType));
@@ -1683,8 +2017,14 @@ namespace gov.dol.vets.utilities
                  ** Internal: _search=false&nd=1432327903502&rows=10&page=1&sidx=&sord=asc&ReportId=&FilingCycle=2014&FormType=VETS100A&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber=T140375&EIN=&DUNS=&LocationName=&LocationState=TN&PointOfContact=
                  ******************************************************************************************************************************************************************************/
                 if (((pdfStateObject)state).InternalAccess)
-                    inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&ReportId=&FilingCycle={3}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={4}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
-                        nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
+                {
+                    if (((pdfStateObject)state).CompanyNumber != null)
+                        inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&ReportId=&FilingCycle={3}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber={4}&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                            nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).FilingCycle, System.Web.HttpUtility.UrlEncode(((pdfStateObject)state).CompanyNumber));
+                    else
+                        inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&ReportId=&FilingCycle={3}&FormType=&SubmittedBy=&SubmittedDate=&CompanyName=&CompanyNumber=&EIN=&DUNS=&LocationName=&LocationState=&PointOfContact=",
+                            nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).FilingCycle);
+                }
                 else
                     inputData = string.Format("_search=false&nd={0}&rows={1}&page=1&sidx={2}&sord=asc&FilterCriteria.CompanyNumber={3}&FilterCriteria.FilingCycle={4}&FilterCriteria.FormType=",
                         nd.CreatePassword(), numRecords, startRecord, ((pdfStateObject)state).CompanyNumber, ((pdfStateObject)state).FilingCycle);
@@ -2828,6 +3168,205 @@ namespace gov.dol.vets.utilities
             }
         }
         /// <summary>
+        /// This function gets the full report information based on report ID
+        /// </summary>
+        /// <param name="Username">Username to access VETS-4212 website</param>
+        /// <param name="Password">Password to access VETS-4212 website</param>
+        /// <param name="CompanyInformationAddress">Base URL to access VETS-4212 website</param>
+        /// <param name="LoginAddress">URL used when authenticating to the VETS-4212 website</param>
+        /// <param name="InternalAccess">Determines if on the ECN/DCN or using external network connection</param>
+        /// <param name="ReportID">The report ID we are looking up the report information</param>
+        /// <param name="ReportInfo">Returned report information</param>
+        /// <param name="cookies">Used for session and authentication on website</param>
+        /// <returns></returns>
+        private VerificationFileRecord getReportInformation(string Username, string Password, string ReportInformationAddress, string LoginAddress, bool InternalAccess, string ReportID, ref CookieContainer cookies)
+        {
+            // use a webclient to get each poll of data
+            System.Net.HttpWebRequest request = null;
+            System.Net.WebResponse response = null;
+
+            // create instance of Report information
+            ReportInformation ReportInfo = new ReportInformation();
+
+            try
+            {
+                if (this._logEnabled) this._logWriter.WriteLine("Getting company information");
+                // make sure we have a valid ReportID
+                Regex re = new Regex(@"^[0-9]+$");
+                if (!re.IsMatch(ReportID))
+                {
+                    OnMessage(this, new MessageEventArgs(string.Format("[{0}] is not a valid report ID.", ReportID)));
+                    if (this._logEnabled) this._logWriter.WriteLine(string.Format("[{0}] is not a valid report ID.", ReportID));
+                    return (null);
+                }
+
+                // first thing is to get the login page and authenticate the VETS-4212 siste
+                /***********************************************************************************************************
+                    ** Extrnal: https://vets100.dol.gov/vets100/External/Report/View/<ReportID>
+                    ** Internal https://vets100.dol.gov/vets100/Internal/Report/View/<ReportID>
+                    **********************************************************************************************************/
+                request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(string.Format(ReportInformationAddress, ReportID));
+
+                // try to get the company information page
+                request.KeepAlive = true;
+                request.CookieContainer = cookies;
+
+                // get the response
+                if (this._logEnabled) this._logWriter.WriteLine("Attempting to get the report information page.");
+                response = request.GetResponse();
+                if (request.HaveResponse)
+                {
+                    // get the response stream for reading
+                    System.IO.Stream responseStream = response.GetResponseStream();
+                    System.Text.Encoding encode = System.Text.Encoding.UTF8;
+                    byte[] buffer = new byte[1024];
+                    StringBuilder page = new StringBuilder();
+
+                    // read all the content
+                    int bytes = 0;
+                    while ((bytes = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        // add data to current page
+                        page.Append(encode.GetString(buffer, 0, bytes));
+                    }
+
+                    // close the responseStream
+                    if (responseStream != null)
+                    {
+                        // close and dispose
+                        responseStream.Close();
+                        responseStream.Dispose();
+                        responseStream = null;
+                    }
+
+                    if (this._logEnabled) this._logWriter.WriteLine("Parsing Html document for company information.");
+                    // Use HtmlDocument for parsing
+                    HtmlAgilityPack.HtmlDocument document = new HtmlAgilityPack.HtmlDocument();
+                    document.LoadHtml(page.ToString());
+
+                    // get all the divs with company information displayed
+                    List<HtmlAgilityPack.HtmlNode> divs = document.DocumentNode.Descendants().Where(
+                        x => (x.Name == "div" && x.Attributes["class"] != null && x.Attributes["class"].Value.Contains("ym-gl"))).ToList();
+
+                    foreach (HtmlAgilityPack.HtmlNode node in divs)
+                    {
+                        // get each of the company information values
+                        string label = string.Empty;
+                        string value = string.Empty;
+
+                        // first get the label for data
+                        foreach (HtmlAgilityPack.HtmlNode child in node.ChildNodes)
+                        {
+                            // get label for this node
+                            if (child.Name == "span" && child.Attributes["class"] != null && child.Attributes["class"].Value.Contains("fieldset-label"))
+                                label = child.InnerText;
+
+                            if (child.Name == "span" && child.Attributes["class"] != null && child.Attributes["class"].Value.Contains("displaybox"))
+                                value = child.InnerText;
+                        }
+
+                        // based on the label set the correct value
+                        switch (label)
+                        {
+                            case "Name of Parent Company:":
+                                ReportInfo.CompanyName = value;
+                                break;
+
+                            case "Company No.":
+                                ReportInfo.CompanyNumber = value;
+                                break;
+
+                            case "EIN / IRS Tax No.":
+                                // only want the last four digits
+                                if (value.Length > 4)
+                                    value = value.Substring(value.Length - 4);
+                                ReportInfo.EIN = value;
+                                break;
+
+                            case "DUNS:":
+                                ReportInfo.DUNS = value;
+                                break;
+
+                            case "NAICS:":
+                                ReportInfo.NAICS = value;
+                                break;
+
+                            case "Name of Company Contact:":
+                                ReportInfo.CompanyContact = value;
+                                break;
+
+                            case "Contact Telephone:":
+                                ReportInfo.Phone = value;
+                                break;
+
+                            case "Contact Email:":
+                                ReportInfo.Email = value;
+                                break;
+
+                            case "Address (Number And Street):":
+                                if (ReportInfo.Address == string.Empty)
+                                    ReportInfo.Address = value;
+                                else
+                                    ReportInfo.HLAddress = value;
+                                break;
+
+                            case "County:":
+                                if (ReportInfo.County == string.Empty)
+                                    ReportInfo.County = value;
+                                else
+                                    ReportInfo.HLCounty = value;
+                                break;
+
+                            case "City:":
+                                if (ReportInfo.City == string.Empty)
+                                    ReportInfo.City = value;
+                                else
+                                    ReportInfo.HLCity = value;
+                                break;
+
+                            case "State:":
+                                if (ReportInfo.State == string.Empty)
+                                    ReportInfo.State = value;
+                                else
+                                    ReportInfo.HLState = value;
+                                break;
+
+                            case "Zip Code:":
+                                if (ReportInfo.Zipcode == string.Empty)
+                                    ReportInfo.Zipcode = value;
+                                else
+                                    ReportInfo.HLZipcode = value;
+                                break;
+
+                            case "Name of Hiring Location:":
+                                ReportInfo.HLName = value;
+                                break;
+                        }
+                    }
+                }
+
+                // good return
+                VerificationFileRecord record = new VerificationFileRecord(ReportInfo.CompanyName, ReportInfo.HLName,
+                    ReportInfo.HLAddress, ReportInfo.HLCity, ReportInfo.HLState, ReportInfo.HLZipcode, ReportInfo.EIN,
+                    ReportInfo.DUNS, ReportInfo.NAICS);
+                if (record.Address == string.Empty)
+                    record = new VerificationFileRecord(ReportInfo.CompanyName, null, ReportInfo.Address,
+                        ReportInfo.City, ReportInfo.State, ReportInfo.Zipcode, ReportInfo.EIN, ReportInfo.DUNS, ReportInfo.NAICS);
+
+                if (this._logEnabled) this._logWriter.WriteLine("Completed getting report information.");
+                return (record);
+            }
+            catch (Exception ex)
+            {
+                // unable to det reportIDs
+                OnMessage(this, new MessageEventArgs(string.Format("Unable to get report information due to: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Unable to get report information due to: {0}", ex.Message));
+
+                // no good login
+                return (null);
+            }
+        }
+        /// <summary>
         /// This function gets the full company information based on company number
         /// </summary>
         /// <param name="Username">Username to access VETS-4212 website</param>
@@ -3081,6 +3620,85 @@ namespace gov.dol.vets.utilities
             catch (Exception ex)
             {
                 OnMessage(this, new MessageEventArgs(string.Format("Unable to get data from DataDotGov due to: {0}", ex.Message)));
+            }
+        }
+        /// <summary>
+        /// This is the public entry for getting Validation File Information and is configured to be called using a thread queue
+        /// </summary>
+        /// <param name="ReportsInformation">This contains all the information needed and is TypeOf pdfStateObject</param>
+        public void getValidationFileInformation_QueueUserWorkItem(object ReportsInformation)
+        {
+            // use a webclient to get each poll of data
+            System.Net.CookieContainer cookies = null;
+            ArrayList ReportIDs = null;
+
+            try
+            {
+
+                // setup the service point manager to handle bad certificates
+                if (ServicePointManager.ServerCertificateValidationCallback == null)
+                {
+                    ServicePointManager.ServerCertificateValidationCallback += delegate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
+                    {
+                        return (true);
+                    };
+                }
+
+                // now we have all the required reportIDs, next step is to actually retrieve each of the reports.
+                // attempt to login to VETS-4212 system
+                if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies))
+                {
+                    if (this._logEnabled) this._logWriter.WriteLine("Unable to login to website.");
+                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to login to website"));
+                    return;
+                }
+
+                // now we need to perform a report query
+                if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, out ReportIDs))
+                {
+                    if (this._logEnabled) this._logWriter.WriteLine("Unable to get ReportIDs using JSON");
+                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to get ReportIDs using JSON"));
+                    return;
+                }
+
+                // file layout for report data as follows:
+                // Type of Report, Company Name, HL Name, Company Address, Company City, Company County, Company State, Company Zip, EIN L4, DUNS, NAICS
+                List<VerificationFileRecord> ReportData = new List<VerificationFileRecord>();
+
+                // create fully qualified object ReportInformation
+                pdfStateObject ri = (pdfStateObject)ReportsInformation;
+
+                // go through each report ID and request PDF
+                if (this._logEnabled) this._logWriter.WriteLine("Getting each report information from website");
+                int recordNo = 1;
+                foreach (string report in ReportIDs)
+                {
+                    // update status message
+                    OnMessage(this, new MessageEventArgs(string.Format("Processing record {0:#,##0} of {1:#,##0}", recordNo, ReportIDs.Count)));
+
+                    VerificationFileRecord record = getReportInformation(ri.Username, ri.Password, ri.ReportInformationAddress, ri.LoginAddress,
+                        ri.InternalAccess, report, ref cookies);
+
+                    // do we already have a matchine record
+                    if (!ReportData.Contains(record))
+                        ReportData.Add(record); // add report to listing
+
+                    // increment the record number
+                    recordNo++;
+                }
+
+                // completed the process
+                OnVerificationFileCompleted(this, new VerificationFileEventArgs(ReportIDs.Count, string.Format("Completed processing {0} reports...", ReportIDs.Count), ReportData));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing {0} reports...", ReportIDs.Count));
+            }
+            catch (Exception ex)
+            {
+                OnMessage(this, new MessageEventArgs(string.Format("Exception during generating reports with message: {0}", ex.Message)));
+            }
+            finally
+            {
+                // completed process
+                OnMessage(this, new MessageEventArgs("Completed getting reports"));
             }
         }
         /// <summary>
@@ -3646,15 +4264,14 @@ namespace gov.dol.vets.utilities
                             columns[(int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11] = totalValue.ToString();
 
                         // make sure we don't have any null values
-                        for (int i = (int)_vets4212Fields.NumEmps_ProtectedVeterans1; i < (int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11; i++)
+                        for (int i = (int)_vets4212Fields.NumEmps_ProtectedVeterans1; i <= (int)_vets4212Fields.NewHire_TotalAllVeteransNonVeterans11; i++)
                         {
                             // determine if the value is numeric or not
                             int value = 0;
                             if (!int.TryParse(columns[i], out value))
                             {
                                 // zero the value
-                                value = 0;
-                                columns[i] = value.ToString();
+                                columns[i] = (0).ToString();
                             }
                         }
 

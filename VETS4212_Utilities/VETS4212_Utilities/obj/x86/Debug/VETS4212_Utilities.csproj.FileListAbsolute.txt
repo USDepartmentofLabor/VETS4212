@@ -27,3 +27,4 @@ F:\Programing\Visual Studio 2015\VETS4212\VETS4212_Utilities\VETS4212_Utilities\
 F:\Programing\Visual Studio 2015\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\gov.dol.vets.utilities.External.resources
 F:\Programing\Visual Studio 2015\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\gov.dol.vets.utilities.Properties.Resources.resources
 F:\Programing\Visual Studio 2015\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.csproj.GenerateResource.Cache
+F:\Programing\Visual Studio 2015\VETS4212\VETS4212_Utilities\VETS4212_Utilities\obj\x86\Debug\VETS4212_Utilities.csprojResolveAssemblyReference.cache
