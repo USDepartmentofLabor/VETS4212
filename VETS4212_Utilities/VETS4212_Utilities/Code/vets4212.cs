@@ -1956,20 +1956,25 @@ namespace gov.dol.vets.utilities
                 // reset JSONData
                 JSONData = "";
 
-                // Get the listing of all reports entered based on given information
-                //if (!getAllReportIDsFromJSON(0, int.Parse(numRecords),ref ReportIDs, state, ref cookies))
-                //{
-                //    // bad result
-                //    return (false);
-                //}
-                // get in groups of 1000 so we don't gag the server
-                for (int i = 0; i < int.Parse(numRecords); i += 100)
+                if (((pdfStateObject)state).InternalAccess)
                 {
-                    OnMessage(this, new MessageEventArgs(string.Format("Getting Report IDs {0:#,##0} of {1:#,##0}", i, int.Parse(numRecords))));
-                    if (!getAllReportIDsFromJSON(i, ((int.Parse(numRecords) - i) > 100) ? 100 : int.Parse(numRecords) - i, ref ReportIDs, state, ref cookies))
+                    // Get the listing of all reports entered based on given information
+                    if (!getAllReportIDsFromJSON(0, int.Parse(numRecords), ref ReportIDs, state, ref cookies))
                     {
                         // bad result
                         return (false);
+                    }
+                } else
+                {
+                    // get in groups of 1000 so we don't gag the server
+                    for (int i = 0; i < int.Parse(numRecords); i += 100)
+                    {
+                        OnMessage(this, new MessageEventArgs(string.Format("Getting Report IDs {0:#,##0} of {1:#,##0}", i, int.Parse(numRecords))));
+                        if (!getAllReportIDsFromJSON(i, ((int.Parse(numRecords) - i) > 100) ? 100 : int.Parse(numRecords) - i, ref ReportIDs, state, ref cookies))
+                        {
+                            // bad result
+                            return (false);
+                        }
                     }
                 }
 
@@ -2566,7 +2571,8 @@ namespace gov.dol.vets.utilities
                     // make sure that the number of locations exists
                     evalRecord = ((object[])_vets4212Record[(int)_vets4212Fields.numberOfMSCLocations]);
                     re = new Regex((string)evalRecord[(int)_vets4212RecordColumns.validation]);
-                    if (!re.IsMatch(columns[(int)_vets4212Fields.numberOfMSCLocations]))
+                    if (!re.IsMatch(columns[(int)_vets4212Fields.numberOfMSCLocations]) || 
+                        string.IsNullOrWhiteSpace(columns[(int)_vets4212Fields.numberOfMSCLocations]))
                     {
                         // add coment for this row and column
                         comments.AppendLine(string.Format("Row [{0:#,##0}] {1} is required.", row, evalRecord[(int)_vets4212RecordColumns.name]));
@@ -2712,6 +2718,9 @@ namespace gov.dol.vets.utilities
                 TextReader reader = new StringReader(data);
                 while ((line = reader.ReadLine()) != null)
                 {
+                    // increment row counter
+                    row++;
+
                     // make sure we have data on this line
                     if (!string.IsNullOrWhiteSpace(line))
                     {
@@ -2721,12 +2730,9 @@ namespace gov.dol.vets.utilities
                         // do we have the correct number of columns
                         if (columns.Length != _vets4212HlRecord.Length)
                         {
-                            comments.AppendLine(string.Format("Invalid number of columns, should be {0:#0}, have {1:#0}", _vets4212Record.Length, columns.Length));
-                            if (this._logEnabled) this._logWriter.WriteLine(string.Format("Invalid number of columns, should be {0:#0}, have {1:#0}", _vets4212Record.Length, columns.Length));
+                            comments.AppendLine(string.Format("Invalid number of columns, should be {0:#0}, have {1:#0}", _vets4212HlRecord.Length, columns.Length));
+                            if (this._logEnabled) this._logWriter.WriteLine(string.Format("Row: {0:#0} - Invalid number of columns, should be {1:#0}, have {2:#0}", row, _vets4212HlRecord.Length, columns.Length));
                         }
-
-                        // increment row counter
-                        row++;
 
                         // go through each column and validate data
                         for (int i = 0; i < _vets4212HlRecord.Length; i++)
@@ -4384,6 +4390,7 @@ namespace gov.dol.vets.utilities
                 // update message
                 OnEvaluateFlatFileCompleted(this, new EvaluateFlatFileEventArgs(string.Format("Completed processing file: {0}", ((vets4212StateObject)flatFileInformation).DataFilename)));
                 if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing file: {0}", ((vets4212StateObject)flatFileInformation).DataFilename));
+                if (this._logEnabled) this._logWriter.Close();
             }
             catch (Exception ex)
             {
