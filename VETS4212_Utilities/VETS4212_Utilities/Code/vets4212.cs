@@ -2338,7 +2338,7 @@ namespace gov.dol.vets.utilities
 
             try
             {
-                if (this._logEnabled) this._logWriter.WriteLine("Processing VETS-4212 Record");
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Processing VETS-4212 Record for row [{0}]", row));
 
                 // split the record into columns
                 string[] columns = record.Split(',');
@@ -2402,6 +2402,11 @@ namespace gov.dol.vets.utilities
                     // add record if needed
                     if (!stats.Reports.ContainsKey(state))
                         stats.Reports.Add(state, new vets4212ReportStats.stateReports());
+                    else // duplicate state report
+                    {
+                        comments.AppendLine(string.Format("Duplicate report found for state [{0}]", state));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Duplicate report found for state [{0}].", state));
+                    }
 
                     // update based on reportType
                     if (columns[(int)_vets4212Fields.typeOfForm] == "MHQ")
@@ -2417,6 +2422,11 @@ namespace gov.dol.vets.utilities
                     // add record if needed
                     if (!stats.Reports.ContainsKey(state))
                         stats.Reports.Add(state, new vets4212ReportStats.stateReports());
+                    else // duplicate state
+                    {
+                        comments.AppendLine(string.Format("Duplicate report found for state [{0}]", state));
+                        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Duplicate report found for state [{0}].", state));
+                    }
 
                     // update based on reportType
                     if (columns[(int)_vets4212Fields.typeOfForm] == "MHL")
@@ -2429,27 +2439,27 @@ namespace gov.dol.vets.utilities
                 {
                     if (this._logEnabled) this._logWriter.WriteLine("Validating parent company information.");
                     // validate parent company information
-                    if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], false) != 0)
+                    if (string.Compare(cInfo.CompanyName, columns[(int)_vets4212Fields.parentCompanyName], true) != 0)
                         comments.AppendLine(string.Format("Parent company name does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyName], cInfo.CompanyName));
-                    if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], false) != 0)
+                    if (string.Compare(cInfo.Address, columns[(int)_vets4212Fields.parentCompanyStreet], true) != 0)
                         comments.AppendLine(string.Format("Parent street address does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyStreet], cInfo.Address));
-                    if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], false) != 0)
+                    if (string.Compare(cInfo.County, columns[(int)_vets4212Fields.parentCompanyCounty], true) != 0)
                         comments.AppendLine(string.Format("Parent county does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCounty], cInfo.County));
-                    if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], false) != 0)
+                    if (string.Compare(cInfo.City, columns[(int)_vets4212Fields.parentCompanyCity], true) != 0)
                         comments.AppendLine(string.Format("Parent city does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyCity], cInfo.City));
-                    if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], false) != 0)
+                    if (string.Compare(cInfo.State, columns[(int)_vets4212Fields.parentCompanyState], true) != 0)
                         comments.AppendLine(string.Format("Parent state does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyState], cInfo.State));
-                    if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], false) != 0)
+                    if (string.Compare(cInfo.Zipcode, columns[(int)_vets4212Fields.parentCompanyZipcode], true) != 0)
                         comments.AppendLine(string.Format("Parent Zipcode does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.parentCompanyZipcode], cInfo.Zipcode));
 
                     if (this._logEnabled) this._logWriter.WriteLine("Validating company contact information");
                     // validate company contact information
                     string companyContact = string.Format("{0} {1}", cInfo.Firstname, cInfo.Lastname);
-                    if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], false) != 0)
+                    if (string.Compare(companyContact, columns[(int)_vets4212Fields.companyContact], true) != 0)
                         comments.AppendLine(string.Format("Parent contact does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContact], companyContact));
-                    if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], false) != 0)
+                    if (string.Compare(cInfo.Phone, columns[(int)_vets4212Fields.companyContactTelephone], true) != 0)
                         comments.AppendLine(string.Format("Parent contact phone does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.companyContactTelephone], cInfo.Phone));
-                    if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], false) != 0)
+                    if (string.Compare(cInfo.Email, columns[(int)_vets4212Fields.compoanyContactEmail], true) != 0)
                         comments.AppendLine(string.Format("Parent contact email does not match row {0}; value: {1}, should be {2}", row, columns[(int)_vets4212Fields.compoanyContactEmail], cInfo.Email));
                 }
 
@@ -4280,6 +4290,19 @@ namespace gov.dol.vets.utilities
                                 columns[i] = (0).ToString();
                             }
                         }
+
+                        // make sure minimum and maximum values are valid
+                        int MaxValue, MinValue;
+                        if (!int.TryParse(columns[(int)_vets4212Fields.Maximum], out MaxValue)) MaxValue = 0;
+                        if (!int.TryParse(columns[(int)_vets4212Fields.Minimum], out MinValue)) MinValue = 0;
+                        if (MinValue > MaxValue)
+                        {
+                            int tempValue = MaxValue;
+                            MaxValue = MinValue;
+                            MinValue = MaxValue;
+                        }
+                        columns[(int)_vets4212Fields.Minimum] = MinValue.ToString();
+                        columns[(int)_vets4212Fields.Maximum] = MaxValue.ToString();
 
                         // write the line of data to writer
                         writer.AppendLine(string.Join(",", columns));
