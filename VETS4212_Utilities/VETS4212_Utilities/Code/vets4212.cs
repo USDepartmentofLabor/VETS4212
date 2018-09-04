@@ -468,7 +468,7 @@ namespace gov.dol.vets.utilities
             set { this._hlzipcode = value; }
         }
     }
-    public class VerificationFileRecord
+    public class VerificationFileRecord : IEquatable<VerificationFileRecord>, IComparable<VerificationFileRecord>, IComparer<VerificationFileRecord>
     {
         // Type of Report, Company Name, HL Name, Company Address, Company City, Company County, Company State, Company Zip, EIN L4, DUNS, NAICS
         private string _reportType = "VETS-4212";
@@ -509,7 +509,26 @@ namespace gov.dol.vets.utilities
         public bool Equals(VerificationFileRecord record)
         {
             if (object.ReferenceEquals(record, null)) return false;
-            return (record.ToString().Equals(this.ToString()));
+            return (record.ToCompareString().Equals(this.ToCompareString()));
+        }
+        public int CompareTo(VerificationFileRecord record)
+        {
+            if (object.ReferenceEquals(record, null)) return (-1);
+            return (string.Compare(this.ToCompareString(), record.ToCompareString(), StringComparison.OrdinalIgnoreCase));
+        }
+        public int Compare(VerificationFileRecord record1, VerificationFileRecord record2)
+        {
+            if (object.ReferenceEquals(record1, null))
+            {
+                if (object.ReferenceEquals(record2, null))
+                    return (0); // both null
+
+                // only left side null
+                return (1);
+            }
+
+            // return compared records
+            return record1.CompareTo(record2);
         }
         public static bool operator ==(VerificationFileRecord record1, VerificationFileRecord record2)
         {
@@ -584,12 +603,23 @@ namespace gov.dol.vets.utilities
             get { return (this._naics); }
             set { this._naics = value; }
         }
+        public string ToCompareString()
+        {
+            return string.Format($"{this._reportType}{this._companyName}{this._address}{this._city}{this._state}{this._zipcode}");
+        }
         public override string ToString()
         {
-            return string.Format("{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}",
-                new object[] {this._reportType, this._companyName, this._hiringLocationName, this._address,
-                this._city, this._state, this._zipcode, this._einL4, this.DUNS, this.NAICS });
+            return string.Format($"{this._reportType},{this._companyName},{this._hiringLocationName},{this._address},{this._city},{this._state},{this._zipcode},{this._einL4},{this._duns},{this._naics}");
         }
+    }
+    public class verificationTuple : Tuple<int, List<VerificationFileRecord>>
+    {
+        public verificationTuple(int LocationCount, List<VerificationFileRecord> Locations) : base(LocationCount, Locations)
+        {
+        }
+
+        public int LocationCount { get { return this.Item1; } }
+        public List<VerificationFileRecord> Locations { get { return this.Item2; } }
     }
 
     // event arguments for message event
@@ -1626,6 +1656,131 @@ namespace gov.dol.vets.utilities
             }
         }
         /// <summary>
+        /// Using URL filtering get specific data from DataDotGov based on report type, filing cycle, company name, and NAICS
+        /// </summary>
+        /// <param name="DataDotGovUrl">The full URL used to get requested data.</param>
+        private verificationTuple getLocationDataFromDataDotGov(int RecordLimit, string DataDotGovUrl)
+        {
+            // use a webclient to get each poll of data
+            System.Net.HttpWebRequest request = null;
+            System.Net.WebResponse response = null;
+
+            // using an array to store and return the Locations
+            ArrayList ReportIDs = new ArrayList();
+            List<VerificationFileRecord> Locations = new List<VerificationFileRecord>();
+
+            try
+            {
+                // make sure to use highest current security
+                System.Net.ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
+                // configure for the offset records
+                int offset = 0;
+                int attempt = 0;
+                int maxTries = 5;
+
+                // keep getting each row of data until we have all requested.
+                while ((ReportIDs.Count % RecordLimit) == 0)
+                {
+                    // set the skip amount
+                    Uri url = new Uri(string.Format(DataDotGovUrl, offset));
+
+                    // restart the request
+                    request = (HttpWebRequest)WebRequest.Create(url);
+                    request.KeepAlive = false;
+
+                    // reset attempts
+                    attempt = 0;
+
+                    while (attempt < maxTries)
+                    {
+                        try
+                        {
+                            // get the response
+                            response = request.GetResponse();
+                            attempt = maxTries;
+
+                        }
+                        catch (Exception wex)
+                        {
+                            // we need to retry upto max tries
+                            attempt++;
+
+                            // if we reach max attempts rethrow the exception
+                            if (attempt == maxTries) throw;
+                            else
+                            {
+                                // show the exception message
+                                string msg = string.Format($"{wex.Message}\nStack Trace: {wex.StackTrace}");
+                                MessageBox.Show(msg, "Error getting records");
+
+                                // delay for 10 minutes
+                                Thread.Sleep(new TimeSpan(0, 10, 0));
+
+                                // restart the request after delay
+                                request = (HttpWebRequest)WebRequest.Create(url);
+                                request.KeepAlive = false;
+                            }
+                        }
+                    }
+
+                    if (request.HaveResponse)
+                    {
+                        // get the response stream for reading
+                        System.IO.Stream responseStream = response.GetResponseStream();
+                        System.Text.Encoding encode = System.Text.Encoding.UTF8;
+
+                        // reading using StreamReader
+                        System.IO.StreamReader reader = new System.IO.StreamReader(responseStream, encode);
+                        System.Xml.XmlDocument results = new System.Xml.XmlDocument();
+                        results.Load(reader);
+
+                        // go through the Xml document and get each of the report IDs
+                        System.Xml.XmlNode root = results.DocumentElement;
+                        if (root.HasChildNodes)
+                            getReportData(root, ref ReportIDs, ref Locations);
+
+                        // release resources
+                        if (reader != null)
+                        {
+                            // close and dispose
+                            reader.Close();
+                            reader.Dispose();
+                            reader = null;
+                        }
+
+                        if (responseStream != null)
+                        {
+                            // close and dispose
+                            responseStream.Close();
+                            responseStream.Dispose();
+                            responseStream = null;
+                        }
+
+                        // display message retrieving
+                        OnMessage(this, new MessageEventArgs(String.Format("Received {0} Report's", ReportIDs.Count)));
+                    }
+
+                    // update skip
+                    offset += RecordLimit;
+                }
+
+                // return values
+                return (new verificationTuple(ReportIDs.Count, Locations));
+            }
+            catch (Exception ex)
+            {
+                // unable to det reportIDs
+                OnMessage(this, new MessageEventArgs(string.Format("Exception happened while trying to get report data from DataDotGov with message: {0}", ex.Message)));
+                return (new verificationTuple(0, new List<VerificationFileRecord>()));
+            }
+            finally
+            {
+                // send message
+                OnMessage(this, new MessageEventArgs("Completed getting Company Location Information..."));
+            }
+        }
+        /// <summary>
         /// Processes the retrieved reporting data saving only requested based on parameters
         /// called by "getReportDataFromDataDotGov"
         /// </summary>
@@ -1647,6 +1802,113 @@ namespace gov.dol.vets.utilities
                 {
                     if (child.Name == "entry")
                         locateContentNode(child, ReportType, CompanyName, NAICS, ref ReportIDs, ref file);
+                }
+            }
+            catch (Exception ex)
+            {
+                OnMessage(this, new MessageEventArgs(string.Format("Exception happened while getting report data with message: {0}", ex.Message)));
+                if (this._logEnabled) this._logWriter.WriteLine(string.Format("Exception happened while getting report data with message: {0}", ex.Message));
+            }
+        }
+        /// <summary>
+        /// Processes the retrieved reporting data saving only requested based on parameters
+        /// called by "getReportDataFromDataDotGov"
+        /// </summary>
+        /// <param name="node">The root XmlNode</param>
+        /// <param name="ReportType">V100, V100A, or V4212</param>
+        /// <param name="CompanyName">Partial company name to filter retrieved data</param>
+        /// <param name="NAICS">Partial NAICS to filter retrieved data</param>
+        /// <param name="ReportIDs">Listing of all processed report identifiers</param>
+        /// <param name="file">File stream to write filtered data</param>
+        private void getReportData(System.Xml.XmlNode node, ref ArrayList ReportIDs, ref List<VerificationFileRecord> Locations)
+        {
+            /***************************************************************************
+             ** Data format as follows
+             ** Root -> Entry -> Content
+             **************************************************************************/
+            try
+            {
+                foreach (System.Xml.XmlNode child in node.ChildNodes)
+                {
+                    if (child.Name == "item")
+                    {
+                        string CoName = string.Empty;
+                        string CoAddress = string.Empty;
+                        string CoCounty = string.Empty;
+                        string CoCity = string.Empty;
+                        string CoState = string.Empty;
+                        string CoZip = string.Empty;
+                        string HlName = string.Empty;
+                        string HlAddress = string.Empty;
+                        string HlCounty = string.Empty;
+                        string HlCity = string.Empty;
+                        string HlState = string.Empty;
+                        string HlZip = string.Empty;
+                        string NAICS = string.Empty;
+
+                        foreach (System.Xml.XmlNode record in child.ChildNodes)
+                        {
+                            switch (record.Name)
+                            {
+                                case "ReportID":
+                                    ReportIDs.Add(record.InnerText.Trim());
+                                    break;
+                                case "CoName":
+                                    CoName = record.InnerText.Trim();
+                                    break;
+                                case "CoAddress":
+                                    CoAddress = record.InnerText.Trim();
+                                    break;
+                                case "CoCounty":
+                                    CoCounty = record.InnerText.Trim();
+                                    break;
+                                case "CoCity":
+                                    CoCity = record.InnerText.Trim();
+                                    break;
+                                case "CoState":
+                                    CoState = record.InnerText.Trim();
+                                    break;
+                                case "CoZip":
+                                    CoZip = record.InnerText.Trim();
+                                    break;
+                                case "HlName":
+                                    HlName = record.InnerText.Trim();
+                                    break;
+                                case "HlAddress":
+                                    HlAddress = record.InnerText.Trim();
+                                    break;
+                                case "HlCounty":
+                                    HlCounty = record.InnerText.Trim();
+                                    break;
+                                case "HlCity":
+                                    HlCity = record.InnerText.Trim();
+                                    break;
+                                case "HlState":
+                                    HlState = record.InnerText.Trim();
+                                    break;
+                                case "HlZip":
+                                    HlZip = record.InnerText.Trim();
+                                    break;
+                                case "NAICS":
+                                    NAICS = record.InnerText.Trim();
+                                    break;
+                            }
+                        } // End getting values
+
+                        // crate the verification record
+                        VerificationFileRecord vr = null;
+                        if (string.IsNullOrWhiteSpace(HlName))
+                            vr = new VerificationFileRecord(CoName, HlName, CoAddress, CoCity, CoState, CoZip, null, null, NAICS);
+                        else
+                            vr = new VerificationFileRecord(CoName, HlName, HlAddress, HlCity, HlState, HlZip, null, null, NAICS);
+
+                        // Add new record if we don't already have
+                        if (!Locations.Contains(vr))
+                            Locations.Add(vr);
+                        else
+                            Console.WriteLine($"Location already contains {CoName} : {HlName}");
+
+                    } // End of Item
                 }
             }
             catch (Exception ex)
@@ -1848,7 +2110,7 @@ namespace gov.dol.vets.utilities
         /// <param name="cookies">Used for keeping current session/authentication information</param>
         /// <param name="ReportIDs">Resultant report identifiers returned</param>
         /// <returns></returns>
-        private bool getReportIDsFromJSON(pdfStateObject state, ref System.Net.CookieContainer cookies, out ArrayList ReportIDs)
+        private bool getReportIDsFromJSON(pdfStateObject state, ref System.Net.CookieContainer cookies, ref ArrayList ReportIDs)
         {
             // use a webclient to get each poll of data
             System.Net.HttpWebRequest request = null;
@@ -1856,10 +2118,12 @@ namespace gov.dol.vets.utilities
             System.IO.Stream responseStream = null;
             Password nd = new Password(12, 24, false, false, true, false);
             string JSONData = "";
-            ReportIDs = new ArrayList();
 
             try
             {
+                // make sure to use highest current security
+                System.Net.ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
                 if (this._logEnabled) this._logWriter.WriteLine("Getting report IDs using JSON");
                 // perform the search
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(((pdfStateObject)state).reportSearchAddress);
@@ -1959,10 +2223,26 @@ namespace gov.dol.vets.utilities
                 if (((pdfStateObject)state).InternalAccess)
                 {
                     // Get the listing of all reports entered based on given information
-                    if (!getAllReportIDsFromJSON(0, int.Parse(numRecords), ref ReportIDs, state, ref cookies))
+                    if (int.Parse(numRecords) > 10000)
                     {
-                        // bad result
-                        return (false);
+                        // get in groups of 1000 so we don't gag the server
+                        for (int i = 0; i < int.Parse(numRecords); i += 100)
+                        {
+                            OnMessage(this, new MessageEventArgs(string.Format("Getting Report IDs {0:#,##0} of {1:#,##0}", i, int.Parse(numRecords))));
+                            if (!getAllReportIDsFromJSON(i, ((int.Parse(numRecords) - i) > 100) ? 100 : int.Parse(numRecords) - i, ref ReportIDs, state, ref cookies))
+                            {
+                                // bad result
+                                return (false);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (!getAllReportIDsFromJSON(0, int.Parse(numRecords), ref ReportIDs, state, ref cookies))
+                        {
+                            // bad result
+                            return (false);
+                        }
                     }
                 } else
                 {
@@ -2008,6 +2288,9 @@ namespace gov.dol.vets.utilities
 
             try
             {
+                // set highest level of security protocol
+                System.Net.ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
                 // rebuild query using number of records to retrieve all records
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(((pdfStateObject)state).reportSearchAddress);
                 request.KeepAlive = true;
@@ -3052,6 +3335,9 @@ namespace gov.dol.vets.utilities
 
             try
             {
+                // make sure to use most current security
+                System.Net.ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
                 // first thing is to get the login page and authenticate the VETS-4212 siste
                 request = (System.Net.HttpWebRequest)System.Net.HttpWebRequest.Create(loginInformation.Url);
                 request.KeepAlive = true;
@@ -3642,11 +3928,11 @@ namespace gov.dol.vets.utilities
         /// This is the public entry for getting Validation File Information and is configured to be called using a thread queue
         /// </summary>
         /// <param name="ReportsInformation">This contains all the information needed and is TypeOf pdfStateObject</param>
-        public void getValidationFileInformation_QueueUserWorkItem(object ReportsInformation)
+        public void getValidationFileInformation_QueueUserWorkItem(object vets4212DataDotGov)
         {
             // use a webclient to get each poll of data
-            System.Net.CookieContainer cookies = null;
-            ArrayList ReportIDs = null;
+            //System.Net.CookieContainer cookies = null;
+            ArrayList ReportIDs = new ArrayList();
 
             try
             {
@@ -3660,51 +3946,16 @@ namespace gov.dol.vets.utilities
                     };
                 }
 
-                // now we have all the required reportIDs, next step is to actually retrieve each of the reports.
-                // attempt to login to VETS-4212 system
-                if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies))
-                {
-                    if (this._logEnabled) this._logWriter.WriteLine("Unable to login to website.");
-                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to login to website"));
-                    return;
-                }
-
-                // now we need to perform a report query
-                if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, out ReportIDs))
-                {
-                    if (this._logEnabled) this._logWriter.WriteLine("Unable to get ReportIDs using JSON");
-                    OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to get ReportIDs using JSON"));
-                    return;
-                }
+                // Vets4212 DataDotGov URL
+                int Limit = 200;
+                string dataDotGovURL = $"{((dataDotGovStateObject)vets4212DataDotGov).DataDotGovAddress}?X-API-KEY=88aa2831-0fac-4bdf-9d09-501124dcb8b6&format=xml&limit={Limit}&offset={{0}}&date_column=EndingPeriod&start_date={((dataDotGovStateObject)vets4212DataDotGov).FilingCycle}-07-01&end_date={((dataDotGovStateObject)vets4212DataDotGov).FilingCycle}-12-31&columns=ReportID:CoName:CoAddress:CoCity:CoCounty:CoState:CoZip:HlName:HlAddress:HlCity:HlCounty:HlState:HlZip:NAICS";
 
                 // file layout for report data as follows:
                 // Type of Report, Company Name, HL Name, Company Address, Company City, Company County, Company State, Company Zip, EIN L4, DUNS, NAICS
-                List<VerificationFileRecord> ReportData = new List<VerificationFileRecord>();
-
-                // create fully qualified object ReportInformation
-                pdfStateObject ri = (pdfStateObject)ReportsInformation;
-
-                // go through each report ID and request PDF
-                if (this._logEnabled) this._logWriter.WriteLine("Getting each report information from website");
-                int recordNo = 1;
-                foreach (string report in ReportIDs)
-                {
-                    // update status message
-                    OnMessage(this, new MessageEventArgs(string.Format("Processing record {0:#,##0} of {1:#,##0}", recordNo, ReportIDs.Count)));
-
-                    VerificationFileRecord record = getReportInformation(ri.Username, ri.Password, ri.ReportInformationAddress, ri.LoginAddress,
-                        ri.InternalAccess, report, ref cookies);
-
-                    // do we already have a matchine record
-                    if (!ReportData.Contains(record))
-                        ReportData.Add(record); // add report to listing
-
-                    // increment the record number
-                    recordNo++;
-                }
+                verificationTuple ReportData = getLocationDataFromDataDotGov(Limit, dataDotGovURL);
 
                 // completed the process
-                OnVerificationFileCompleted(this, new VerificationFileEventArgs(ReportIDs.Count, string.Format("Completed processing {0} reports...", ReportIDs.Count), ReportData));
+                OnVerificationFileCompleted(this, new VerificationFileEventArgs(ReportIDs.Count, string.Format("Completed processing {0} reports...", ReportData.LocationCount), ReportData.Locations));
                 if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing {0} reports...", ReportIDs.Count));
             }
             catch (Exception ex)
@@ -3717,6 +3968,81 @@ namespace gov.dol.vets.utilities
                 OnMessage(this, new MessageEventArgs("Completed getting reports"));
             }
         }
+        //public void getValidationFileInformation_QueueUserWorkItem(object ReportsInformation)
+        //{
+        //    // use a webclient to get each poll of data
+        //    System.Net.CookieContainer cookies = null;
+        //    ArrayList ReportIDs = new ArrayList();
+
+        //    try
+        //    {
+
+        //        // setup the service point manager to handle bad certificates
+        //        if (ServicePointManager.ServerCertificateValidationCallback == null)
+        //        {
+        //            ServicePointManager.ServerCertificateValidationCallback += delegate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
+        //            {
+        //                return (true);
+        //            };
+        //        }
+
+        //        // now we have all the required reportIDs, next step is to actually retrieve each of the reports.
+        //        // attempt to login to VETS-4212 system
+        //        if (!loginToVets100Site((pdfStateObject)ReportsInformation, out cookies))
+        //        {
+        //            if (this._logEnabled) this._logWriter.WriteLine("Unable to login to website.");
+        //            OnVerificationFileCompleted(this, new VerificationFileEventArgs(0, "Unable to login to website", new List<VerificationFileRecord>()));
+        //            return;
+        //        }
+
+        //        // now we need to perform a report query
+        //        if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, ref ReportIDs))
+        //        {
+        //            if (this._logEnabled) this._logWriter.WriteLine("Unable to get ReportIDs using JSON");
+        //            OnVerificationFileCompleted(this, new VerificationFileEventArgs(0, "Unable to get ReportIDs using JSON", new List<VerificationFileRecord>()));
+        //            return;
+        //        }
+
+        //        // file layout for report data as follows:
+        //        // Type of Report, Company Name, HL Name, Company Address, Company City, Company County, Company State, Company Zip, EIN L4, DUNS, NAICS
+        //        List<VerificationFileRecord> ReportData = new List<VerificationFileRecord>();
+
+        //        // create fully qualified object ReportInformation
+        //        pdfStateObject ri = (pdfStateObject)ReportsInformation;
+
+        //        // go through each report ID and request PDF
+        //        if (this._logEnabled) this._logWriter.WriteLine("Getting each report information from website");
+        //        int recordNo = 1;
+        //        foreach (string report in ReportIDs)
+        //        {
+        //            // update status message
+        //            OnMessage(this, new MessageEventArgs(string.Format("Processing record {0:#,##0} of {1:#,##0}", recordNo, ReportIDs.Count)));
+
+        //            VerificationFileRecord record = getReportInformation(ri.Username, ri.Password, ri.ReportInformationAddress, ri.LoginAddress,
+        //                ri.InternalAccess, report, ref cookies);
+
+        //            // do we already have a matchine record
+        //            if (!ReportData.Contains(record))
+        //                ReportData.Add(record); // add report to listing
+
+        //            // increment the record number
+        //            recordNo++;
+        //        }
+
+        //        // completed the process
+        //        OnVerificationFileCompleted(this, new VerificationFileEventArgs(ReportIDs.Count, string.Format("Completed processing {0} reports...", ReportIDs.Count), ReportData));
+        //        if (this._logEnabled) this._logWriter.WriteLine(string.Format("Completed processing {0} reports...", ReportIDs.Count));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        OnMessage(this, new MessageEventArgs(string.Format("Exception during generating reports with message: {0}", ex.Message)));
+        //    }
+        //    finally
+        //    {
+        //        // completed process
+        //        OnMessage(this, new MessageEventArgs("Completed getting reports"));
+        //    }
+        //}
         /// <summary>
         /// This is the public entry for getting PDF reports and is configured to be called using a thread queue
         /// </summary>
@@ -3725,7 +4051,7 @@ namespace gov.dol.vets.utilities
         {
             // use a webclient to get each poll of data
             System.Net.CookieContainer cookies = null;
-            ArrayList ReportIDs = null;
+            ArrayList ReportIDs = new ArrayList();
 
             try
             {
@@ -3748,8 +4074,64 @@ namespace gov.dol.vets.utilities
                     return;
                 }
 
-                // now we need to perform a report query
-                if (!getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, out ReportIDs))
+                // now do we have multple years, company numbers?
+                bool multipleFilingCycles = false;
+                bool multipleCompanyNumbers = false;
+                pdfStateObject reportInformation = (pdfStateObject)ReportsInformation;
+                if (((pdfStateObject)ReportsInformation).FilingCycle.Contains(",")) multipleFilingCycles = true;
+                if (((pdfStateObject)ReportsInformation).CompanyNumber.Contains(",")) multipleCompanyNumbers = true;
+
+                if (multipleFilingCycles)
+                {
+                    foreach (string year in (reportInformation.FilingCycle.Split(',')))
+                    {
+                        // do we have multple company numbers
+                        if (multipleCompanyNumbers)
+                        {
+                            foreach (string companyNo in (reportInformation.CompanyNumber.Split(',')))
+                            {
+                                // using both companyNo and the year
+                                pdfStateObject reportInfo = new pdfStateObject(reportInformation.reportIDUrl, reportInformation.Username,
+                                    reportInformation.Password, reportInformation.Filename, reportInformation.webAddress, reportInformation.pdfAddress,
+                                    reportInformation.reportSearchAddress,reportInformation.CompanyName, year, reportInformation.ReportType, 
+                                    companyNo, reportInformation.InternalAccess);
+
+                                // now we need to perform a report query
+                                getReportIDsFromJSON(reportInfo, ref cookies, ref ReportIDs);
+                            }
+                        } else
+                        {
+                            // just using the year
+                            pdfStateObject reportInfo = new pdfStateObject(reportInformation.reportIDUrl, reportInformation.Username,
+                                reportInformation.Password, reportInformation.Filename, reportInformation.webAddress, reportInformation.pdfAddress,
+                                reportInformation.reportSearchAddress, reportInformation.CompanyName, year, reportInformation.ReportType,
+                                reportInformation.CompanyNumber, reportInformation.InternalAccess);
+
+                            // now we need to perform a report query
+                            getReportIDsFromJSON(reportInfo, ref cookies, ref ReportIDs);
+                        }
+                    }
+                } else if (multipleCompanyNumbers)
+                {
+                    foreach (string companyNo in (reportInformation.CompanyNumber.Split(',')))
+                    {
+                        // using companyNo
+                        pdfStateObject reportInfo = new pdfStateObject(reportInformation.reportIDUrl, reportInformation.Username,
+                            reportInformation.Password, reportInformation.Filename, reportInformation.webAddress, reportInformation.pdfAddress,
+                            reportInformation.reportSearchAddress, reportInformation.CompanyName, reportInformation.FilingCycle, 
+                            reportInformation.ReportType, companyNo, reportInformation.InternalAccess);
+
+                        // now we need to perform a report query
+                        getReportIDsFromJSON(reportInfo, ref cookies, ref ReportIDs);
+                    }
+                }
+                else
+                {
+                    // now we need to perform a report query
+                    getReportIDsFromJSON((pdfStateObject)ReportsInformation, ref cookies, ref ReportIDs);
+                }
+
+                if (ReportIDs.Count == 0)
                 {
                     if (this._logEnabled) this._logWriter.WriteLine("Unable to get ReportIDs using JSON");
                     OnPdfReportsCompleted(this, new PDFEventArgs(0, "Unable to get ReportIDs using JSON"));

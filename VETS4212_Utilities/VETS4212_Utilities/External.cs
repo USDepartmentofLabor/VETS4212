@@ -19,7 +19,7 @@ namespace gov.dol.vets.utilities
         private delegate void pdfReportsCompleteDelegate();
         private delegate void evaluateFlatFileCompletedDelegate();
         private delegate void fixFlatFileCompletedDelegate();
-        private delegate void verificationFileCompletedDelegate(List<ReportInformation> ReportData, string message);
+        private delegate void verificationFileCompletedDelegate(List<VerificationFileRecord> ReportData, string message);
 
         public External()
         {
@@ -34,7 +34,9 @@ namespace gov.dol.vets.utilities
                 StringBuilder message = new StringBuilder();
 
                 // verify and validate parameters
-                Regex re = new Regex(@"^[\d]{4}$");
+                //Regex re = new Regex(@"^[\d]{4}$");
+                // allow for multiple years
+                Regex re = new Regex(@"^(\d+(,\d+)*)?$");
                 if (!re.IsMatch(filingCycle.Text))
                     message.AppendLine("Invalid Filing Cycle Value.");
 
@@ -487,14 +489,6 @@ namespace gov.dol.vets.utilities
                 if (!re.IsMatch(filingCycle.Text))
                     message.AppendLine("Invalid Filing Cycle Value.");
 
-                // make sure we have a username
-                if (string.IsNullOrWhiteSpace(username.Text))
-                    message.AppendLine("No Username was entered.");
-
-                // make sure we have a password
-                if (string.IsNullOrWhiteSpace(password.Text))
-                    message.AppendLine("No Password was entered.");
-
                 // did we have any errors
                 if (!string.IsNullOrWhiteSpace(message.ToString()))
                 {
@@ -503,31 +497,15 @@ namespace gov.dol.vets.utilities
                 }
 
                 // disable the generate pdf button so they don't double tap
-                tsbGeneratePDFs.Enabled = false;
-
-                // get value of internalAccess in appConfig
-                bool internalAccess = false;
-                if (!bool.TryParse(ConfigurationManager.AppSettings["internalAccess"], out internalAccess)) internalAccess = false;
+                tsbVerificationFile.Enabled = false;
 
                 // get URL's from App.Config
-                string loginAddress = ConfigurationManager.AppSettings["webAddress"];
-                string reportInformationAddress = ConfigurationManager.AppSettings["reportInformationAddress"];
-                string reportSearchAddress = ConfigurationManager.AppSettings["searchAddress"];
-                if (string.IsNullOrWhiteSpace(loginAddress) || string.IsNullOrWhiteSpace(reportInformationAddress) || 
-                    string.IsNullOrWhiteSpace(reportSearchAddress))
+                string vets4212DataDotGovURL = ConfigurationManager.AppSettings["dolApi2Address"];
+                if (string.IsNullOrWhiteSpace(vets4212DataDotGovURL))
                 {
                     MessageBox.Show("Validation File has been cancelled due to invalid configuration", "Error in configuration");
                     return;
                 }
-                // correct report information address for formatting
-                if (reportInformationAddress.Substring(reportInformationAddress.Length - 1, 1) != "/")
-                    reportInformationAddress += "/{0}";
-                else
-                    reportInformationAddress += "{0}";
-
-                // create a pdfStateObject
-                pdfStateObject reportInformation = new pdfStateObject(username.Text, password.Text, loginAddress, reportInformationAddress, 
-                    reportSearchAddress, filingCycle.Text, internalAccess);
 
                 // create handler for process
                 bool logEnabled = false;
@@ -539,7 +517,7 @@ namespace gov.dol.vets.utilities
                 handler.VerificationFileCompleted += new vets4212.VerificationFileCompletedEventHandler(Handler_VerificationFileCompleted);
 
                 // run process on a thread
-                ThreadPool.QueueUserWorkItem(handler.getValidationFileInformation_QueueUserWorkItem, reportInformation);
+                ThreadPool.QueueUserWorkItem(handler.getValidationFileInformation_QueueUserWorkItem, new dataDotGovStateObject(vets4212DataDotGovURL, null, null, filingCycle.Text.Trim(), null, null));
             }
             catch (Exception ex)
             {
@@ -551,9 +529,6 @@ namespace gov.dol.vets.utilities
         {
             try
             {
-                // we completed the process show message on completion
-                MessageBox.Show(e.Message, "Verification File Completed");
-
                 // reenable the button
                 this.Invoke(new verificationFileCompletedDelegate(VerificationFileCompleted), new object[] { e.ReportData, e.Message });
             }
@@ -562,12 +537,43 @@ namespace gov.dol.vets.utilities
                 MessageBox.Show(ex.Message, "Error");
             }
         }
-        private void VerificationFileCompleted(List<ReportInformation> ReportData, string message)
+        private void VerificationFileCompleted(List<VerificationFileRecord> ReportData, string message)
         {
             try
             {
                 // update message
                 StatusBar.Text = message;
+
+                // reenable process
+                tsbVerificationFile.Enabled = true;
+
+                // Use save dialog to save data
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.DefaultExt = "csv";
+                sfd.Filter = "Comma Separated File|*.csv|Text File|*.txt|All Files|*.*";
+                sfd.Title = "Where to save data?";
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    // Make sure we sort the data
+                    ReportData.Sort();
+
+                    // Open file for writing text
+                    using (System.IO.FileStream fs = new System.IO.FileStream(sfd.FileName, System.IO.FileMode.Create, System.IO.FileAccess.ReadWrite, System.IO.FileShare.ReadWrite))
+                    {
+                        // create the stream writer
+                        using (System.IO.TextWriter tw = new System.IO.StreamWriter(fs))
+                        {
+                            // write the header
+                            tw.WriteLine("Report Type,Company Name,Hiring Location Name,Address,City,State,Zip Code,EINL4,DUNS,NAICS");
+                            foreach (VerificationFileRecord record in ReportData)
+                                tw.WriteLine(record.ToString());
+
+                            // close writer
+                            tw.Close();
+                        }
+                        if (fs != null) fs.Close();
+                    }
+                }
             }
             catch (Exception ex)
             {
